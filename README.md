@@ -95,8 +95,8 @@ Three things keep the agent honest:
 - It does not publish, set a price or delete a page without being told.
 - It cannot attach a custom domain, set up payments, or edit products and
   blog posts; those are done in the dashboard, and the handoff note says where.
-- Handing a finished site over to another account is not available yet. For
-  now a client who must own the site creates the token themselves.
+- It cannot accept a site handover for your client. It can send the
+  invitation when your token allows it; the client accepts from their email.
 
 ## Images (all optional)
 

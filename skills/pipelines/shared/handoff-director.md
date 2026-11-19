@@ -26,9 +26,18 @@ reader who was not in this conversation.
    ways to work with a client:
    - the builder keeps the site in their own account and maintains it for the
      client (an agency plan exists for this; see the platform's documentation);
-   - the client owns the site outright: for now that means building it with a
-     token from the client's own account. Handing a finished site over to
-     another account is not available yet; do not promise it.
+   - the client owns the site outright: the finished site is handed over to
+     the client's own account. Ask the user which way they agreed with the
+     client. For a handover, follow "Handing a site over" in
+     `skills/core/webto-website/references/mcp.md`: `create_site_handoff`
+     needs the "Serah terima" permission on the token; dry-run it, show the
+     user the summary (what moves, what is copied, what is cleared, the
+     buyer-data counts, every blocker), and send the invitation only on their
+     yes. The client accepts from the email, signed in with that address,
+     within 7 days; you cannot accept for them. Record in `handoff.md` that an
+     invitation was sent, to which address, and what the client must do. If
+     the token lacks the permission, tell the user to start the handover in
+     the dashboard (site settings, Plan & Usage, "Serah terima situs").
 8. **Migration**: the old-to-new address map from `site_plan.json`, and the
    order of the switch: publish, check, attach the domain in the dashboard,
    then retire the old site. Say that old addresses with no new page will

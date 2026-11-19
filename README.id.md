@@ -94,8 +94,9 @@ Tiga hal yang menjaga agen tetap jujur:
 - Tidak bisa memasang domain kustom, mengatur pembayaran, atau mengedit
   produk dan artikel blog; semua itu lewat dashboard, dan catatan serah
   terima menyebutkan tempatnya.
-- Memindahkan situs jadi ke akun lain belum tersedia. Untuk sementara, klien
-  yang harus memiliki situsnya membuat token dari akunnya sendiri.
+- Tidak bisa menerima serah terima situs atas nama klien Anda. Agen bisa
+  mengirim undangannya bila token Anda mengizinkan; klien menerimanya dari
+  emailnya.
 
 ## Gambar (semuanya opsional)
 
