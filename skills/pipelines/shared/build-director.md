@@ -32,9 +32,13 @@ site/assets/<file>
    (or the content inventory). Where the brief has nothing, the field or the
    section is left out. Copy you write (headlines, descriptions) says only
    what the brief supports.
-4. **Images.** The client's own files as `asset:<file>`; where they have
-   none, `__IMG__:<english query>` or `__ILLU__:<query>`. Note which sections
-   use stand-ins: the handoff tells the client.
+4. **Images.** Follow `skills/meta/images.md`. The client's own files as
+   `asset:<file>`; where they have none, `__IMG__:<english query>` or
+   `__ILLU__:<query>`, or a photo you choose with `studio stock` when the
+   picture matters; a generated image only where the design needs a
+   picture neither can give, and never in place of the business's real
+   people, place, product or work. Note which sections use stand-ins or
+   generated images: the handoff tells the client.
 5. **Preview each section as you finish it**, with its real content, as the
    core skill describes (`npx @webto-id/variant-check sections/<key>.astro
    --type <type> --content <file> --out preview-<key>.html`, run from the

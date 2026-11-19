@@ -93,8 +93,13 @@ redone three times. After that, stop and ask the user how to proceed.
    when what the user wants does not fit.
 6. **Use only images you may use.** The user's own files (`asset:<file>`),
    stock stand-ins (`__IMG__:<query>`), platform illustrations
-   (`__ILLU__:<query>`). Never copy another site's photographs, icons or fonts
-   unless the user confirmed the client holds the rights.
+   (`__ILLU__:<query>`), a stock photo taken with `studio stock` and
+   credited as its library requires, or an image generated for this site.
+   Never copy
+   another site's photographs, icons or fonts unless the user confirmed the
+   client holds the rights. Read `skills/meta/images.md` before generating:
+   a generated image never stands in for the business's real people, place,
+   product or work, and generating on the user's key needs their yes first.
 7. **Every section is designed.** Author each section as a WVF variant under
    one design direction, following `skills/core/html-to-webto-variant`. Do not
    assemble a site from platform catalog sections, except where the core skill
@@ -117,6 +122,8 @@ projects/<project>/
   site_plan.json          pages, sections, variants to author
   design_direction.json   one design language
   assets_manifest.json    landing-3d: every shipped file and its rights
+  generated_images.json   every generated image: provider, model, prompt
+  stock_images.json       every stock photo you chose: source and credit
   site/ or template/      the bundle: site.json or template.json, sections/, samples/, assets/
   reports/                preflight.json, check.json
   review/<stage>.json     your own review of a stage
@@ -144,6 +151,10 @@ All through `node tools/studio.mjs <command>`:
 | `log <project> "<text>"` | Appends a decision |
 | `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |
+| `stock <project> --query "..."` | Searches Unsplash, Pexels or Pixabay with the user's free key (from `.env`) and saves previews to `reports/stock/`. `--orientation`, `--provider`, `--count` |
+| `stock-use <project> --pick <n> [--out <file>]` | Takes one photo of the last search into the site the way its library requires, and records the credit in `stock_images.json` |
+| `image-budget <project> --max <n> --approved "..."` | Records how many images the user agreed to pay for |
+| `image <project> --prompt "..." --out <file>` | Generates one image on the user's own key (Gemini, OpenRouter, OpenAI or fal, from `.env`) into the bundle's `assets/`. `--aspect`, `--provider`, `--model`, `--dry-run` |
 
 The platform itself is reached through the MCP server configured in
 `.mcp.json`. Its tools and their contracts are documented in
@@ -157,7 +168,7 @@ listings).
 |---|---|---|
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
-| Meta | `skills/meta/*` | Onboarding, self-review, gates, taste |
+| Meta | `skills/meta/*` | Onboarding, self-review, gates, taste, images |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 
 When a director and a core skill disagree about the platform's format or

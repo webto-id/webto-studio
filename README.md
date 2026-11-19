@@ -97,7 +97,40 @@ Three things keep the agent honest:
   blog posts; those are done in the dashboard, and the handoff note says where.
 - Handing a finished site over to another account is not available yet. For
   now a client who must own the site creates the token themselves.
-- No image generation in v0.1. Sites use your own images or stock stand-ins.
+
+## Images (all optional)
+
+Sites use your client's own images first. Everything below needs no key to
+skip: without one, the platform picks a stock photo for every image the
+client did not supply. Copy `.env.example` to `.env` to give the agent more.
+
+**Stock photo search, free keys.** The agent searches a library, looks at
+the candidates and chooses the photo, instead of taking what it is given.
+
+| Library | Key | How the photo is used |
+|---|---|---|
+| Unsplash | `UNSPLASH_ACCESS_KEY` | Shown from Unsplash's address, with a credit, as Unsplash requires |
+| Pexels | `PEXELS_API_KEY` | Downloaded into the site; credit where it fits |
+| Pixabay | `PIXABAY_API_KEY` | Downloaded into the site, as Pixabay requires |
+
+`STOCK_PROVIDER` chooses between them when several keys are set.
+
+**Image generation, your own paid key.** When the design needs a picture
+that neither the client nor a library can give, and your agent cannot make
+images itself:
+
+| Provider | Key | Default model |
+|---|---|---|
+| Google AI Studio (Gemini) | `GEMINI_API_KEY` | `gemini-3.1-flash-image` |
+| OpenRouter | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash-image` |
+| OpenAI | `OPENAI_API_KEY` | `gpt-image-2` |
+| fal.ai | `FAL_KEY` | `fal-ai/flux/schnell` |
+
+Each has a `*_IMAGE_MODEL` variable to pick another model, and
+`IMAGE_PROVIDER` chooses between them when several keys are set. The agent
+tells you the provider, the model and how many images before the first one,
+and stops at the number you agreed to. It does not generate pictures that
+would pass for your client's real premises, staff, products or work.
 
 ## Cost
 

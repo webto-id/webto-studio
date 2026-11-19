@@ -3,8 +3,9 @@
 //   node tools/studio.mjs <command> [...]
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
-import { ROOT, StudioError, list, loadConfig, parseArgs, writeJson } from "./lib/core.mjs";
+import { ROOT, StudioError, list, loadConfig, loadDotEnv, parseArgs, writeJson } from "./lib/core.mjs";
 
+loadDotEnv();
 const [, , name, ...rest] = process.argv;
 if (!existsSync(join(ROOT, "node_modules"))) {
   console.error("Dependencies are not installed yet. Run: npm install");
@@ -24,6 +25,10 @@ const HELP = `webto-studio
   log <project> "<decision>"              add a line to the decision log
   shoot <project> --page <label>=<url> [--page ...] [--widths 390,768,1280] [--dark] [--reduced-motion] [--tag <name>]
   crawl <project> <url> --authorized [--max 20] [--render]
+  stock <project> --query "..." [--orientation landscape|portrait|square] [--provider <name>] [--count 6]
+  stock-use <project> --pick <n> [--out <file.jpg>]
+  image-budget <project> --max <n> --approved "<what the user said>"
+  image <project> --prompt "..." --out <file.jpg> [--aspect 16:9] [--provider <name>] [--model <id>] [--dry-run]
 `;
 
 const out = (v) => console.log(typeof v === "string" ? v : JSON.stringify(v, null, 2));
@@ -132,6 +137,55 @@ const commands = {
     if (leftInQueue) out(`${leftInQueue} more link(s) were not read (limit reached). Raise --max if they matter.`);
     if (thin) out(`${thin} page(s) came back with no text. If the site builds its pages in the browser, run again with --render.`);
     out(`Written: projects/${slug}/content_inventory.json`);
+  },
+
+  async stock({ _: [slug], flags }) {
+    const { searchStock } = await import("./lib/stock.mjs");
+    const r = await searchStock(slug, {
+      query: flags.query,
+      orientation: typeof flags.orientation === "string" ? flags.orientation : undefined,
+      provider: typeof flags.provider === "string" ? flags.provider.toLowerCase() : undefined,
+      count: flags.count,
+    });
+    if (!r.results.length) return out(`${r.label} found nothing for that query. Try fewer, more general words.`);
+    out(`${r.results.length} photo(s) from ${r.label}:`);
+    for (const p of r.results) out(`  ${p.pick}. ${p.width}x${p.height}  ${p.description || "(no description)"}  by ${p.photographer || "unknown"}${p.previewFile ? `  ${p.previewFile}` : ""}`);
+    out(`\nOpen the previews in projects/${slug}/reports/stock/ before choosing. Then: node tools/studio.mjs stock-use ${slug} --pick <n>${r.delivery === "download" ? " --out <name>.jpg" : ""}`);
+  },
+
+  async "stock-use"({ _: [slug], flags }) {
+    const { useStock } = await import("./lib/stock.mjs");
+    const r = await useStock(slug, { pick: flags.pick, out: flags.out });
+    out(r.path ? `Saved ${r.path} (${Math.round(r.bytes / 1024)} KB) from ${r.label}.` : `${r.label} photos stay on ${r.label}'s own address; nothing was downloaded.`);
+    out(`Use it in content as "${r.ref}".`);
+    out(r.creditRule === "required" ? `Credit required on the site: "${r.credit}", linked to ${r.photographerUrl ?? r.pageUrl}.` : r.creditRule === "asked" ? `Credit asked for where it fits: "${r.credit}", linked to ${r.pageUrl}.` : "No credit is required on the site.");
+    if (r.oversize) out("Note: the file is above the platform's 2 MB limit. Install sharp (npm install sharp) and run stock-use again.");
+    out(`Recorded in projects/${slug}/stock_images.json.`);
+  },
+
+  async "image-budget"({ _: [slug], flags }) {
+    const { setImageBudget } = await import("./lib/image.mjs");
+    const b = setImageBudget(slug, { max: flags.max, approved: flags.approved });
+    out(`Image budget for ${slug}: ${b.max} image(s), ${b.used} used.`);
+  },
+
+  async image({ _: [slug], flags }) {
+    const { generateImage } = await import("./lib/image.mjs");
+    const r = await generateImage(slug, {
+      prompt: flags.prompt,
+      out: flags.out,
+      aspect: typeof flags.aspect === "string" ? flags.aspect : undefined,
+      provider: typeof flags.provider === "string" ? flags.provider.toLowerCase() : undefined,
+      model: flags.model,
+      dryRun: flags["dry-run"] === true,
+    });
+    if (r.dryRun) {
+      out(`Would use ${r.label}, model ${r.model}, aspect ${r.aspect}.`);
+      return out(r.budget ? `Budget: ${r.budget.used} of ${r.budget.max} used.` : "No image budget yet: ask the user, then run image-budget.");
+    }
+    out(`Made ${r.path} (${Math.round(r.bytes / 1024)} KB) with ${r.label}, model ${r.model}. Budget: ${r.used} of ${r.max} used.`);
+    out(`Use it in content as "${r.ref}". Open the file before you use it.`);
+    for (const n of r.notes) out(`Note: ${n}`);
   },
 };
 

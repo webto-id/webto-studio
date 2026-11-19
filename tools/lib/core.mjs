@@ -13,6 +13,30 @@ export function projectsDir() {
   return process.env.STUDIO_PROJECTS_DIR ? resolve(process.env.STUDIO_PROJECTS_DIR) : join(ROOT, "projects");
 }
 
+/** `KEY=value` lines; quotes optional; `#` starts a comment line. */
+export function parseDotEnv(text) {
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+    if (!m || line.trimStart().startsWith("#")) continue;
+    let v = m[2];
+    const quoted = /^(["'])(.*)\1$/.exec(v);
+    if (quoted) v = quoted[2];
+    else v = v.replace(/\s+#.*$/, "");
+    out[m[1]] = v;
+  }
+  return out;
+}
+
+/** Read `.env` beside package.json. A variable already set in the shell wins. */
+export function loadDotEnv(env = process.env) {
+  const path = join(ROOT, ".env");
+  if (!existsSync(path)) return;
+  for (const [k, v] of Object.entries(parseDotEnv(readFileSync(path, "utf8")))) {
+    if (v !== "" && (env[k] === undefined || env[k] === "")) env[k] = v;
+  }
+}
+
 export function loadConfig() {
   const cfg = readJson(join(ROOT, "platform.config.json"));
   const mcpUrl = process.env.WEBTO_MCP_URL?.trim();

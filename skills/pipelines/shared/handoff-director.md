@@ -8,8 +8,12 @@ reader who was not in this conversation.
 
 1. **The site**: its name, public address, and whether it is published.
 2. **What was built**: the pages, in one line each.
-3. **What is a stand-in**: every section that uses a stock photo or an
-   illustration in place of the client's own, so they know what to replace.
+3. **What is a stand-in**: every section that uses a stock photo, an
+   illustration or a generated image in place of the client's own, so they
+   know what to replace. List generated images from `generated_images.json`
+   by name and say plainly that they are generated. List the stock photos
+   from `stock_images.json` with their credit lines, and say which credits
+   must stay on the site if the client keeps the photo.
 4. **What was left out, and why**: interview rows the client declined, facts
    that never arrived, pages dropped in a migration.
 5. **How the client edits it**: they log in to the dashboard, open the site,

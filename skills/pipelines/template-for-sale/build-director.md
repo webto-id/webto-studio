@@ -38,8 +38,10 @@ template/assets/<file>
    the maximum number of items, with long names, and with optional fields
    missing. A section that only looks right with its perfect sample is not
    done.
-5. **Images**: `__IMG__:<query>` stand-ins, or the seller's own files as
-   `asset:<file>` when they hold the rights. Never another site's assets.
+5. **Images**: `__IMG__:<query>` stand-ins, the seller's own files as
+   `asset:<file>` when they hold the rights, or images generated for this
+   template (`skills/meta/images.md`), which ship as `asset:` files and count
+   toward the bundle's image limits. Never another site's assets.
 6. **Fill the manifest**: pages, `variants[]` with `name`, `description`,
    `mood` and `fits` as the core skill requires, and the `listing` block
    (name, title, description, category, tags) while the design is fresh.

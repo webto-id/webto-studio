@@ -65,6 +65,14 @@ export async function preflight() {
   report.browser = await browserState();
   if (!report.browser.available) report.notes.push(`No browser for screenshots (${report.browser.fix}). Visual checks must then be reported as not done.`);
 
+  const { imageSetup } = await import("./image.mjs");
+  report.images = imageSetup();
+  if (report.images.problem) report.notes.push(report.images.problem);
+  if (!report.images.configured.length) report.notes.push("No image provider key in .env. Images come from the user's own files or stock stand-ins unless you can make images yourself.");
+  const { stockSetup } = await import("./stock.mjs");
+  report.stock = stockSetup();
+  if (report.stock.problem) report.notes.push(report.stock.problem);
+
   const token = process.env[tokenEnv]?.trim();
   report.token = { present: Boolean(token) };
   if (!token) {
@@ -120,6 +128,8 @@ export function summarize(report) {
     if (no.length) lines.push(`Cannot: ${no.join(", ")}`);
   }
   lines.push(`Browser for screenshots: ${report.browser.available ? "yes" : "no"}`);
+  lines.push(`Image generation: ${report.images.default ? `${report.images.default.label}, model ${report.images.default.model}` : "not configured"}`);
+  lines.push(`Stock photo search: ${report.stock.configured.length ? report.stock.configured.map((s) => s.label).join(", ") : "not configured (the platform still picks photos for __IMG__: stand-ins)"}`);
   for (const p of report.problems) lines.push(`PROBLEM: ${p}`);
   for (const n of report.notes) lines.push(`Note: ${n}`);
   return lines.join("\n");

@@ -96,8 +96,41 @@ Tiga hal yang menjaga agen tetap jujur:
   terima menyebutkan tempatnya.
 - Memindahkan situs jadi ke akun lain belum tersedia. Untuk sementara, klien
   yang harus memiliki situsnya membuat token dari akunnya sendiri.
-- Belum ada pembuatan gambar AI di v0.1. Situs memakai gambar Anda sendiri
-  atau foto stok pengganti.
+
+## Gambar (semuanya opsional)
+
+Situs memakai gambar milik klien lebih dulu. Semua di bawah ini boleh
+dilewati: tanpa kunci apa pun, platform memilihkan foto stok untuk setiap
+gambar yang tidak disediakan klien. Salin `.env.example` menjadi `.env`
+untuk memberi agen pilihan lebih.
+
+**Pencarian foto stok, kunci gratis.** Agen mencari di pustaka foto, melihat
+kandidatnya, lalu memilih sendiri, bukan menerima foto yang dipilihkan.
+
+| Pustaka | Kunci | Cara foto dipakai |
+|---|---|---|
+| Unsplash | `UNSPLASH_ACCESS_KEY` | Ditampilkan dari alamat Unsplash, dengan kredit, sesuai aturan Unsplash |
+| Pexels | `PEXELS_API_KEY` | Diunduh ke situs; kredit bila ada tempatnya |
+| Pixabay | `PIXABAY_API_KEY` | Diunduh ke situs, sesuai aturan Pixabay |
+
+`STOCK_PROVIDER` memilih pustaka bila lebih dari satu kunci terisi.
+
+**Pembuatan gambar, kunci berbayar milik Anda.** Bila desain butuh gambar
+yang tidak tersedia dari klien maupun pustaka foto, dan agen Anda tidak bisa
+membuat gambar sendiri:
+
+| Penyedia | Kunci | Model bawaan |
+|---|---|---|
+| Google AI Studio (Gemini) | `GEMINI_API_KEY` | `gemini-3.1-flash-image` |
+| OpenRouter | `OPENROUTER_API_KEY` | `google/gemini-2.5-flash-image` |
+| OpenAI | `OPENAI_API_KEY` | `gpt-image-2` |
+| fal.ai | `FAL_KEY` | `fal-ai/flux/schnell` |
+
+Tiap penyedia punya variabel `*_IMAGE_MODEL` untuk memilih model lain, dan
+`IMAGE_PROVIDER` memilih penyedia bila lebih dari satu kunci terisi. Agen
+menyebutkan penyedia, model, dan jumlah gambar sebelum membuat yang pertama,
+dan berhenti pada jumlah yang Anda setujui. Agen tidak membuat gambar yang
+bisa dikira foto asli tempat usaha, staf, produk, atau hasil kerja klien.
 
 ## Biaya
 

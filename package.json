@@ -22,6 +22,7 @@
     "yaml": "^2.6.0"
   },
   "optionalDependencies": {
-    "playwright": "^1.49.0"
+    "playwright": "^1.49.0",
+    "sharp": "^0.35.0"
   }
 }

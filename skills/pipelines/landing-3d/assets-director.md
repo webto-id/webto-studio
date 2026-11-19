@@ -29,7 +29,9 @@ digits, dots, hyphens and underscores.
    uploads, not what loads fast.
 4. **Make the poster**: a still of the model or the video's first frame, or
    the photograph itself. It carries the section for every visitor who does
-   not get the effect, so light and frame it as a finished image.
+   not get the effect, so light and frame it as a finished image. A poster
+   for an `ogl-shader` section may be generated (`skills/meta/images.md`); a
+   poster of a real product is a render or photograph of that product.
 5. **Write `assets_manifest.json`**: every file with its kind, size in
    bytes, role, and rights; and `poster`.
 
