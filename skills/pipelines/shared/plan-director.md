@@ -6,6 +6,7 @@ the one design language they share. Nothing is written to the platform here.
 ## Read first
 
 - `skills/meta/concept.md`
+- `skills/meta/seo.md`, sections 1 to 6
 - `skills/meta/taste-direction.md`
 - `skills/core/webto-website/SKILL.md`, steps 3 to 5 of "Workflow: a new site"
 - `skills/core/webto-website/references/catalog.md` for section types
@@ -23,19 +24,25 @@ the one design language they share. Nothing is written to the platform here.
    for the visitor's goal, and a `layout` from the concept's composition.
    Neighbours on a page get different layouts. A section with no purpose is
    cut.
-3. **Stay inside the limits.** Call `get_plan_limits` and compare: sites on
+3. **Search.** Following `skills/meta/seo.md`, write `seo_plan.json`: who
+   searches and from where, then for every page its query, title,
+   description and `<h1>`, and the `businessProfile` fields with the fact each
+   comes from. A page that exists only for a search it cannot answer is cut.
+   Where the concept's headline and the searcher's words pull apart, settle
+   it here (section 3 of the skill), not in the build.
+4. **Stay inside the limits.** Call `get_plan_limits` and compare: sites on
    the account, pages per site, sections per page, variants per site. Record
    the result in `limits`. If the plan does not fit, say so and offer a
    smaller plan; do not plan on an upgrade the user has not chosen.
-4. **Count the designs.** List each distinct section design once in
+5. **Count the designs.** List each distinct section design once in
    `variants` with its key and section type. Reuse a key across pages where
    the design is the same with other content. This is what you will author.
-5. **Set the direction** and write `design_direction.json`, the concept block
+6. **Set the direction** and write `design_direction.json`, the concept block
    first, following `skills/meta/taste-direction.md`. In `landing-3d` the
    concept stage already wrote it: read it, do not replace it.
-6. **Subdomain.** Ask what address the user wants, call `check_subdomain`,
+7. **Subdomain.** Ask what address the user wants, call `check_subdomain`,
    offer its suggestions if the name is taken, and record their choice.
-7. **Migration only:** fill `redirects` with every old address from the
+8. **Migration only:** fill `redirects` with every old address from the
    content inventory and where it goes. A dropped page gets `to: null` and a
    reason.
 
@@ -45,7 +52,8 @@ Show the user, in their language:
 
 - the concept in one sentence and what the first screen shows, plus the
   other two candidates in one line each, so the user can pick another;
-- the pages, and under each its sections in one line apiece;
+- the pages, and under each its sections in one line apiece, and the search
+  it is meant to be found by, with its title;
 - the direction in two or three sentences, with the palette and the fonts;
 - the address;
 - for a migration, the pages that are merged or dropped;

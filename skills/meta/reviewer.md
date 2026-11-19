@@ -59,6 +59,16 @@ see. Write it after the work, from what you actually opened.
   `brief.json` holds, or its `idea_read` is not the concept in
   `design_direction.json`. That is a `should`: the site is not saying it.
 
+**Search** (`skills/meta/seo.md`)
+- A page's title, description or hero headline that differs from
+  `seo_plan.json`, or a second `<h1>` (a section heading set in `<h1>` for
+  its size).
+- An image with no `alt`, or an alt that repeats the query instead of
+  saying what the picture shows.
+- Hours, prices, the address or the offer that exist only inside an image.
+- The name, address or phone written differently in two places.
+- A variant that writes JSON-LD, a `<meta>` tag or hidden text.
+
 **Editing**
 - Text the owner cannot change in the editor. The validator reports
   `text-not-editable`; treat a warning about it as a blocker on a client site.

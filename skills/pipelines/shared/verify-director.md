@@ -8,6 +8,7 @@ the real navigation, the real images.
 
 - `skills/meta/reviewer.md`
 - `skills/meta/critic.md`
+- `skills/meta/seo.md`, section 7
 
 ## Do
 
@@ -31,23 +32,35 @@ the real navigation, the real images.
 3. **Read the measurements.** Sideways scroll, a failed image or a console
    error from the site's own code is a blocker. A console error from a
    third party is a note.
-4. **Open the screenshots.** All of them. Follow the list in
+4. **The search audit**, on the same links, every page:
+
+   ```bash
+   node tools/studio.mjs audit <project> --page home=<url> --page <label>=<url> ...
+   ```
+
+   Every problem is fixed the way step 7 describes, then the audit runs
+   again: the checkpoint judges the saved audit against `seo_plan.json` as it
+   is then, and refuses one taken before the last `update_site`. Read the
+   warnings (`skills/meta/seo.md`, section 7) and fix those that apply. In
+   `template-for-sale` there is no search plan: the audit checks the
+   structure a buyer's site inherits (one `<h1>`, alt, links).
+5. **Open the screenshots.** All of them. Follow the list in
    `skills/meta/reviewer.md`: truth, reading and acting, layout, design.
-5. **Walk the site** when you have a browser tool: every navigation link,
+6. **Walk the site** when you have a browser tool: every navigation link,
    every button, the form if there is one (do not submit a real enquiry to a
    client's inbox without telling the user).
-6. **Fix through the platform**, never by a second `create_site`: edit the
+7. **Fix through the platform**, never by a second `create_site`: edit the
    bundle, `studio check`, then `update_site` with the lock's revision (dry
    run, then confirm; a fix the user already approved in kind needs no new
    gate, a change to content or structure does). Save the new lock and
-   capture again.
-7. **The blind critic.** Once your own findings are fixed and every run is
+   capture again, and audit again.
+8. **The blind critic.** Once your own findings are fixed and every run is
    captured, follow `skills/meta/critic.md`: `studio critic <project>`, a
    fresh agent with that brief only, then `studio critic <project> --result`.
-   Work through its fixes the way step 6 describes, capture every run again,
+   Work through its fixes the way step 7 describes, capture every run again,
    and run a new pass with a new critic, until the latest pass meets the
    pipeline's `quality_bar` or the passes run out and the user decides.
-8. **Write `review/verify.json`**, including the critic's readings where
+9. **Write `review/verify.json`**, including the critic's readings where
    they did not match the brief or the concept.
 
 In `template-for-sale` the thing on the platform is a template draft: fixes

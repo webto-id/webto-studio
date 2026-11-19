@@ -18,6 +18,9 @@ site_plan:
 design_direction:
   path: design_direction.json
   schema: design_direction
+seo_plan:
+  path: seo_plan.json
+  schema: seo_plan
 assets_manifest:
   path: assets_manifest.json
   schema: assets_manifest
@@ -30,6 +33,8 @@ lock:
   path: "{bundle}/webto.lock.json"
 shots:
   path: shots/index.json
+audit:
+  path: reports/audit.json # judged again at the checkpoint against the plans as they are
 review:
   path: "review/{stage}.json"
   schema: review

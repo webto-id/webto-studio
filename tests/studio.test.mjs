@@ -68,6 +68,22 @@ const direction = (extra = {}) => ({
   avoid: ["A corporate blue gradient hero"],
   ...extra,
 });
+const seoPage = (extra = {}) => ({
+  slug: "",
+  query: "warung makan malam jalan contoh",
+  intent: "Find a place to eat tonight and order ahead",
+  title: "Warung Senja, makan malam rumahan di Jl. Contoh",
+  description: "Masakan rumahan dari sore sampai tutup di Jl. Contoh 1. Pesan lewat WhatsApp, ambil di warung tanpa antre.",
+  h1: "Makan malam rumahan di Jl. Contoh",
+  ...extra,
+});
+const seoPlan = (extra = {}) => ({
+  searcher: { who: "Someone near Jl. Contoh looking for dinner", place: "Jl. Contoh, Yogyakarta" },
+  business_type: "FoodEstablishment",
+  pages: [seoPage()],
+  profile: [{ field: "address", from: "address" }, { field: "businessType", from: "kind" }],
+  ...extra,
+});
 const review = (stage, extra = {}) => ({ stage, looked_at: ["preview-hero-warung.html"], findings: [], checks_not_done: [], verdict: "pass", ...extra });
 
 function throughPlan() {
@@ -77,6 +93,7 @@ function throughPlan() {
   writeCheckpoint(slug, "brief");
   writeJson(join(dir, "site_plan.json"), plan());
   writeJson(join(dir, "design_direction.json"), direction());
+  writeJson(join(dir, "seo_plan.json"), seoPlan());
   writeCheckpoint(slug, "plan", { approved: "ya, lanjut" });
 }
 function writeBundle(body = "<section>a</section>") {
@@ -138,6 +155,7 @@ test("a gated stage needs what the user said", () => {
   writeCheckpoint(slug, "brief");
   writeJson(join(dir, "site_plan.json"), plan());
   writeJson(join(dir, "design_direction.json"), direction());
+  writeJson(join(dir, "seo_plan.json"), seoPlan());
   assert.throws(() => writeCheckpoint(slug, "plan"), /needs the user's approval/);
   assert.throws(() => writeCheckpoint(slug, "plan", { approved: true }), /needs the user's approval/);
   const { checkpoint, next } = writeCheckpoint(slug, "plan", { approved: "oke, sesuai" });
@@ -532,6 +550,7 @@ function toPlanGate(dd, sp = plan()) {
   writeCheckpoint(slug, "brief");
   writeJson(join(dir, "site_plan.json"), sp);
   writeJson(join(dir, "design_direction.json"), dd);
+  writeJson(join(dir, "seo_plan.json"), seoPlan());
 }
 
 test("a direction without a concept is refused", () => {
@@ -584,6 +603,7 @@ function toVerify() {
   writeFileSync(join(dir, "site", "webto.lock.json"), "{}");
   writeCheckpoint(slug, "draft", { approved: "ya buat" });
   writeJson(join(dir, "review", "verify.json"), review("verify", { looked_at: ["shots/home-390.png"] }));
+  auditReport();
 }
 function shots(at = "2026-11-19T10:00:00.000Z") {
   mkdirSync(join(dir, "shots"), { recursive: true });
@@ -682,4 +702,103 @@ test("a malformed critique is redone under its own number", () => {
   assert.throws(() => writeCheckpoint(slug, "verify"), /critique\/pass-1\.json\(root\): must have required property 'business_read'/);
   assert.equal(criticBrief(dir, loadPipeline("client-site")).n, 1);
   assert.equal(judgeCritique(dir, loadPipeline("client-site")).summary, undefined);
+});
+
+// ── search: the plan and the audit ────────────────────────────────────────
+const { judgeAudit, slugOf } = await import("../tools/lib/audit.mjs");
+
+function auditPage(extra = {}) {
+  const p = seoPage();
+  return {
+    label: "home", url: "https://senja.wpage.id/", path: "/", slug: "", status: 200,
+    title: p.title, description: p.description, robots: null, canonical: "https://senja.wpage.id/", lang: "id", ogImage: "https://senja.wpage.id/r2/og.jpg",
+    headings: [{ level: 1, text: p.h1, hidden: false }, { level: 2, text: "Menu malam ini", hidden: false }],
+    images: [{ src: "https://senja.wpage.id/r2/depan.jpg", alt: "Bagian depan Warung Senja", naturalWidth: 800, width: 350, lazy: false, firstScreen: true, decorative: false }],
+    internalLinks: [{ path: "/", text: "Beranda" }], externalLinks: 1, emptyLinks: 0,
+    jsonLd: { types: ["FoodEstablishment", "WebSite", "WebPage"], errors: [], org: { type: "FoodEstablishment", address: true, phone: true, hours: false } },
+    words: 320, bytes: 600000, lcp: { tag: "img", src: "https://senja.wpage.id/r2/depan.jpg", lazy: false, ms: 900 },
+    ...extra,
+  };
+}
+function auditReport(pages = [auditPage()], extra = {}) {
+  writeJson(join(dir, "reports", "audit.json"), { at: "2026-11-19T10:00:00.000Z", published: false, pages, ...extra });
+}
+
+test("the search plan gives every page its own search, and the home page names the place", () => {
+  toPlanGate(direction());
+  const sp = plan();
+  sp.pages.push({ title: "Menu", slug: "menu", sections: [{ type: "menu", variant: "hero-warung", purpose: "Show tonight's dishes", layout: "index list" }] });
+  writeJson(join(dir, "site_plan.json"), sp);
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /no entry for the page "menu" of site_plan\.json/);
+  writeJson(join(dir, "seo_plan.json"), seoPlan({ pages: [seoPage(), seoPage({ slug: "menu", title: "Menu Warung Senja hari ini", description: "Daftar masakan malam ini di Warung Senja, Jl. Contoh 1, dengan harga per porsi dan cara memesan lewat WhatsApp." })] }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /pages "home" and "menu" aim at the same search/);
+  writeJson(join(dir, "seo_plan.json"), seoPlan({ pages: [seoPage(), seoPage({ slug: "menu", query: "menu nasi rames murah", title: "Daftar hidangan Warung Senja", description: "Daftar masakan malam ini di Warung Senja, Jl. Contoh 1, dengan harga per porsi dan cara memesan lewat WhatsApp." })] }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /page "menu": the title uses no word of its query "menu nasi rames murah"/);
+  writeJson(join(dir, "seo_plan.json"), seoPlan({ pages: [seoPage({ title: "Warung Senja, makan malam rumahan", h1: "Makan malam rumahan" })], profile: [{ field: "openingHours", from: "hours" }] }));
+  writeJson(join(dir, "site_plan.json"), plan());
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /title and h1 do not name the place \(Jl\. Contoh, Yogyakarta\)[\s\S]*profile "openingHours" comes from "hours", which is not a fact in brief\.json/);
+  writeJson(join(dir, "seo_plan.json"), seoPlan({ pages: [seoPage({ title: "Warung Senja, masakan rumahan dari sore sampai malam di Jl. Contoh" })] }));
+  const { warnings } = writeCheckpoint(slug, "plan", { approved: "ya" });
+  assert.match(warnings.join("\n"), /the title is 66 characters/);
+});
+
+test("the audit reads what the builder controls: one h1, alt, link text, the planned title", () => {
+  const plans = { seoPlan: seoPlan(), sitePlan: plan() };
+  assert.deepEqual(judgeAudit({ pages: [auditPage()] }, plans), { problems: [], warnings: [] });
+  const bad = auditPage({
+    title: "Beranda",
+    headings: [{ level: 1, text: "Warung Senja", hidden: false }, { level: 1, text: "Menu", hidden: false }, { level: 4, text: "Sambal", hidden: false }],
+    images: [{ src: "https://x/a.jpg", alt: null, naturalWidth: 3000, width: 300, lazy: true, firstScreen: true, decorative: false }],
+    emptyLinks: 2,
+    internalLinks: [{ path: "/kontak", text: "Kontak" }, { path: "/blog/resep", text: "klik di sini" }, { path: "/checkout", text: "Bayar" }],
+    lcp: { tag: "img", src: "https://x/a.jpg", lazy: true },
+    words: 40,
+  });
+  const { problems, warnings } = judgeAudit({ pages: [bad] }, plans);
+  const all = problems.join("\n");
+  assert.match(all, /2 <h1> on the page \("Warung Senja", "Menu"\)/);
+  assert.match(all, /1 image\(s\) without alt/);
+  assert.match(all, /2 link\(s\) with no text/);
+  assert.match(all, /links to \/kontak, which no page of this site has/);
+  assert.doesNotMatch(all, /\/checkout|\/blog/);
+  assert.match(all, /the title is "Beranda", seo_plan\.json says/);
+  const w = warnings.join("\n");
+  assert.match(w, /<h4> straight after an <h1>/);
+  assert.match(w, /is lazy-loaded/);
+  assert.match(w, /only 40 words/);
+  assert.match(w, /"klik di sini" says nothing/);
+  assert.match(w, /3000px for a 300px slot/);
+  // Every page of the plan is audited.
+  const sp = plan();
+  sp.pages.push({ title: "Menu", slug: "menu", sections: [] });
+  assert.match(judgeAudit({ pages: [auditPage()] }, { sitePlan: sp }).problems.join(), /"menu" in site_plan\.json was not audited/);
+  assert.equal(slugOf("/layanan/scaling"), "scaling");
+  assert.equal(slugOf("/"), "");
+});
+
+test("a draft may say noindex; the public site may not, and its robots.txt must let crawlers in", () => {
+  const draft = judgeAudit({ pages: [auditPage({ robots: "noindex, nofollow" })] }, {});
+  assert.deepEqual(draft.problems, []);
+  assert.match(draft.warnings.join(), /say noindex, as a draft should/);
+  const live = judgeAudit(
+    { published: true, pages: [auditPage({ robots: "noindex, nofollow", internalLinks: [{ path: "/menu", text: "Menu" }] })], site: { origin: "https://senja.wpage.id", robots: { blocksAll: true }, sitemap: { status: 200, paths: ["/"] }, linkStatus: { "/menu": 404 } } },
+    {},
+  );
+  const all = live.problems.join("\n");
+  assert.match(all, /says noindex, so search engines drop it/);
+  assert.match(all, /robots\.txt on https:\/\/senja\.wpage\.id blocks every crawler/);
+  assert.match(all, /links to \/menu, which answer with an error/);
+});
+
+test("verify needs an audit of the current draft with no problems", () => {
+  toVerify();
+  writeFileSync(join(dir, "site", "webto.lock.json"), JSON.stringify({ siteId: "s1", revision: 4 }));
+  critique(1, shots());
+  auditReport([auditPage({ headings: [] })], { lockRevision: 4 });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /audit: home: 0 <h1> on the page/);
+  auditReport([auditPage()], { lockRevision: 3 });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /the draft changed after the audit \(revision 3, now 4\)/);
+  auditReport([auditPage()], { lockRevision: 4 });
+  const { checkpoint } = writeCheckpoint(slug, "verify");
+  assert.ok(checkpoint.artifacts.some((a) => a.name === "audit" && a.path === "reports/audit.json"));
 });

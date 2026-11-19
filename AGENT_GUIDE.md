@@ -107,11 +107,14 @@ redone three times. After that, stop and ask the user how to proceed.
    Author each section as a WVF variant under that one direction, following
    `skills/core/html-to-webto-variant`. Do not assemble a site from platform
    catalog sections, except where the core skill names an exception.
+   Plan what each page is found by with the pages, not after them
+   (`skills/meta/seo.md`): its search, title, description and `<h1>`.
 8. **Look before you report, then let someone else look.** A passing
    validator does not mean the page looks right. Capture the real pages with
    `studio shoot` and open the images. Then a fresh critic agent that sees
    only the screenshots scores them (`skills/meta/critic.md`); its fixes are
-   your work until the site meets the bar. Without a browser, say so, and
+   your work until the site meets the bar. `studio audit` reads what search
+   engines read from the same pages. Without a browser, say so, and
    list the check as not done.
 9. **A Blender connection is the user's open Blender.** Ask before the first
    use, work in your own collection, never touch or save their work, and
@@ -131,11 +134,12 @@ projects/<project>/
   concept.json            template-for-sale, landing-3d
   site_plan.json          pages, sections, variants to author
   design_direction.json   one design language
+  seo_plan.json           who searches, and each page's query, title, description, h1
   assets_manifest.json    landing-3d: every shipped file and its rights
   generated_images.json   every generated image: provider, model, prompt
   stock_images.json       every stock photo you chose: source and credit
   site/ or template/      the bundle: site.json or template.json, sections/, samples/, assets/
-  reports/                preflight.json, check.json
+  reports/                preflight.json, check.json, audit.json
   review/<stage>.json     your own review of a stage
   shots/                  screenshots and shots/index.json
   critique/pass-<n>.json  the blind critic's scores, written by the critic
@@ -160,6 +164,7 @@ All through `node tools/studio.mjs <command>`:
 | `check <project> [--strict]` | Compiles the bundle with the platform's validator and writes `reports/check.json`. Templates are always strict |
 | `checkpoint <project> <stage>` | Records a finished stage, or refuses with the reasons |
 | `log <project> "<text>"` | Appends a decision |
+| `audit <project> --page <label>=<url>` | Reads the real pages at phone width as a search engine does: title, description, `<h1>`, heading order, alt, link text, links to missing pages, structured data, words, weight; checks them against `seo_plan.json` and writes `reports/audit.json`. `--published` also checks noindex, `robots.txt`, the sitemap and every internal link on the live site |
 | `critic <project>` | Prints the brief for a fresh critic agent: the rubric and the screenshots, nothing of the plan. `--result` shows the latest pass against the bar |
 | `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, whole page and first screen, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |
@@ -183,7 +188,7 @@ listings).
 |---|---|---|
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
-| Meta | `skills/meta/*` | Onboarding, concept, taste, self-review, the blind critic, gates, images, Blender |
+| Meta | `skills/meta/*` | Onboarding, concept, search, taste, self-review, the blind critic, gates, images, Blender |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 
 When a director and a core skill disagree about the platform's format or

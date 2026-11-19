@@ -76,7 +76,7 @@ tools/                preflight, check, checkpoint, screenshots, old-site reader
 projects/             your work, one folder per site (not tracked by git)
 ```
 
-Two things keep a one-line request from turning into a generic site:
+Three things go into every site, however short the request:
 
 - **A concept before any design.** The agent asks you only for facts, then
   writes three ideas taken from the business's own world (its name, its
@@ -89,6 +89,14 @@ Two things keep a one-line request from turning into a generic site:
   alone, on design, usability, distinctiveness and content. Its fix list is
   the builder's work until the site reaches the bar, or you accept it as it
   is.
+- **Written to be found.** With the pages, the agent plans the search each
+  one answers ("klinik gigi anak dago bandung"), its title, description and
+  headline, and the business facts that become structured data, from what
+  you told it and nothing else. `studio audit` then reads the real pages as
+  a search engine does: one `<h1>`, alt text, link text, links to missing
+  pages, the planned titles, and, once the site is live, noindex,
+  `robots.txt` and the sitemap. The handoff tells the owner what only they
+  can do: Google Business Profile, Search Console, a domain.
 
 Three things keep the agent honest:
 

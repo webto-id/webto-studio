@@ -43,10 +43,11 @@ stages:
   - name: plan
     skill: pipelines/shared/plan-director
     requires: [brief, content_inventory]
-    produces: [site_plan, design_direction]
+    produces: [site_plan, design_direction, seo_plan]
     human_approval: true
     approval_shows: Pages, sections, visual direction, subdomain, and the old-to-new address map
     success_criteria:
+      - seo_plan.json gives every page its own search, title and description, and the home page names the place where there is one
       - Every old page is mapped to a new page or listed as dropped, with the reason
       - The plan fits the limits get_plan_limits returned
       - The concept in design_direction.json was chosen from three, is anchored in a fact about this business (or buyer), and passed the generic check
@@ -74,11 +75,12 @@ stages:
     skill: pipelines/shared/verify-director
     extra_skills: [pipelines/site-migration/parity-director]
     requires: [lock]
-    produces: [shots, critique, review]
+    produces: [shots, audit, critique, review]
     review: true
     human_approval: false
     success_criteria:
       - A fresh critic that saw only the screenshots scored the current ones at the quality bar, or the user accepted the site under it
+      - "`studio audit` of every page of the draft reports no problems"
       - Every page of the real draft was captured at 390, 768 and 1280 px
       - Each old page was compared with its new page for missing content
 

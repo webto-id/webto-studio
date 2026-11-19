@@ -52,9 +52,10 @@ stages:
   - name: plan
     skill: pipelines/shared/plan-director
     requires: [brief, concept]
-    produces: [site_plan]
+    produces: [site_plan, seo_plan]
     human_approval: false
     success_criteria:
+      - seo_plan.json gives every page its own search, title and description, and the home page names the place where there is one
       - The page reads complete with the 3D section replaced by its poster
 
   - name: build
@@ -79,11 +80,12 @@ stages:
   - name: verify
     skill: pipelines/shared/verify-director
     requires: [lock]
-    produces: [shots, critique, review]
+    produces: [shots, audit, critique, review]
     review: true
     human_approval: false
     success_criteria:
       - A fresh critic that saw only the screenshots scored the current ones at the quality bar, or the user accepted the site under it
+      - "`studio audit` of every page of the draft reports no problems"
       - Captured at 390, 768 and 1280 px
       - The page was also checked with reduced motion, where only the poster shows
 

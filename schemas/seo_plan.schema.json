@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "seo_plan",
+  "description": "Who searches for this business and with what words, and what each page says to them in a search result. Written at the plan stage; the audit checks the real pages against it.",
+  "type": "object",
+  "required": ["searcher", "business_type", "pages", "profile"],
+  "properties": {
+    "searcher": {
+      "type": "object",
+      "required": ["who", "place"],
+      "properties": {
+        "who": { "type": "string", "minLength": 3, "description": "The person searching, in one line: \"a parent in Bandung looking for a dentist for a child\"" },
+        "place": { "type": ["string", "null"], "description": "Where they search from, as the brief gives it (\"Dago, Bandung\"); null for a business that sells everywhere online" }
+      }
+    },
+    "business_type": {
+      "enum": ["Organization", "SoftwareApplication", "LocalBusiness", "Restaurant", "Store", "MedicalBusiness", "ProfessionalService", "HealthAndBeautyBusiness", "AutomotiveBusiness", "HomeAndConstructionBusiness", "FoodEstablishment", "LodgingBusiness", "SportsActivityLocation", "EducationalOrganization"],
+      "description": "Goes to site.json businessProfile.businessType"
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["slug", "query", "intent", "title", "description", "h1"],
+        "properties": {
+          "slug": { "type": "string", "description": "As in site_plan.json; \"\" for the home page" },
+          "query": { "type": "string", "minLength": 3, "description": "The words the searcher types to find this page, in the site's language: \"dokter gigi anak dago bandung\"" },
+          "intent": { "type": "string", "minLength": 3, "description": "What they want to do when they land: compare prices, book, find the address" },
+          "title": { "type": "string", "minLength": 10, "maxLength": 70, "description": "The page's seoTitle, exactly" },
+          "description": { "type": "string", "minLength": 50, "maxLength": 200, "description": "The page's seoDescription, exactly" },
+          "h1": { "type": "string", "minLength": 3, "description": "The hero headline, the page's one <h1>" }
+        }
+      }
+    },
+    "profile": {
+      "type": "array",
+      "description": "The businessProfile fields filled, each from a fact in brief.json",
+      "items": {
+        "type": "object",
+        "required": ["field", "from"],
+        "properties": {
+          "field": { "enum": ["legalName", "logoUrl", "phone", "email", "businessType", "address", "geo", "openingHours", "socialLinks"] },
+          "from": { "type": "string", "minLength": 1, "description": "The brief.json fact it comes from" }
+        }
+      }
+    },
+    "not_done": {
+      "type": "array",
+      "description": "Search pages deliberately not made, with the reason: \"no page per city: the clinic serves one area\"",
+      "items": { "type": "string" }
+    }
+  }
+}

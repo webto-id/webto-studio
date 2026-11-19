@@ -9,6 +9,7 @@ anything is sent to the platform.
   `design.md`, `tailwind.md`, `schema.md`. Every `.astro` follows them.
 - `skills/core/webto-website/references/site-json.md` for `site.json`.
 - `skills/core/webto-website/examples/warung-senja/` as a worked example.
+- `skills/meta/seo.md`, sections 3 to 5, with `seo_plan.json`.
 - `landing-3d`: `skills/core/webto-3d-effects/SKILL.md` and
   `references/recipes.md` for the 3D section.
 
@@ -39,11 +40,20 @@ site/assets/<file>
    picture neither can give, and never in place of the business's real
    people, place, product or work. Note which sections use stand-ins or
    generated images: the handoff tells the client.
-5. **Preview each section as you finish it**, with its real content, as the
+5. **What search reads.** Each page's `seoTitle` and `seoDescription` are
+   the ones in `seo_plan.json`, character for character, and the hero
+   `headline` is its `h1`; if the copy has to change, change the plan too.
+   `businessProfile` holds the fields `seo_plan.json` lists, from the brief.
+   In every variant: one `<h1>` (the hero), `<h2>` for section headings,
+   `alt` from a content field on every image (`alt=""` only for decoration),
+   `img(url, width)` sized for the slot, no `loading="lazy"` on the hero
+   image, link text that says where it goes, and no JSON-LD, `<meta>` or
+   hidden text.
+6. **Preview each section as you finish it**, with its real content, as the
    core skill describes (`npx @webto-id/variant-check sections/<key>.astro
    --type <type> --content <file> --out preview-<key>.html`, run from the
    `site/` folder). Fix each one before starting the next.
-6. **Check the whole bundle:**
+7. **Check the whole bundle:**
 
    ```bash
    node tools/studio.mjs check <project>
@@ -51,15 +61,15 @@ site/assets/<file>
 
    Fix every error. Read every warning; on a client's site treat
    `text-not-editable` as an error.
-7. **Look at the previews** at 390, 768 and 1280 px, light and dark. With a
+8. **Look at the previews** at 390, 768 and 1280 px, light and dark. With a
    browser: `node tools/studio.mjs shoot <project> --page <key>=file:///<absolute path to preview-<key>.html> --tag local`.
    A local preview has its palette baked in, so the dark one is a second
    file: build it with `--theme dark --out preview-<key>-dark.html` and
    capture that with `--tag local-dark`. Skip dark only when the site has no
    dark palette, and say so in the review.
-8. **Review** following `skills/meta/reviewer.md`; write `review/build.json`.
+9. **Review** following `skills/meta/reviewer.md`; write `review/build.json`.
 
-Any edit after step 6 means running `check` again: the checkpoint compares
+Any edit after step 7 means running `check` again: the checkpoint compares
 the report with the files on disk.
 
 ## Done

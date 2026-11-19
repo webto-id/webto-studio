@@ -38,13 +38,19 @@ reader who was not in this conversation.
      invitation was sent, to which address, and what the client must do. If
      the token lacks the permission, tell the user to start the handover in
      the dashboard (site settings, Plan & Usage, "Serah terima situs").
-8. **Migration**: the old-to-new address map from `site_plan.json`, and the
+8. **Being found**, from `skills/meta/seo.md` section 8: the search each
+   page was written for, with its title; then the owner's three steps in
+   order (Google Business Profile with the same name, address, phone and
+   hours; Search Console through the dashboard's Integrasi, then the
+   sitemap; a custom domain if they want one). Say that a new site takes
+   weeks to show in search, and that no one can promise a position.
+9. **Migration**: the old-to-new address map from `site_plan.json`, and the
    order of the switch: publish, check, attach the domain in the dashboard,
    then retire the old site. Say that old addresses with no new page will
    stop working.
-9. **`landing-3d`**: the files the 3D section uses, their sizes, and how to
+10. **`landing-3d`**: the files the 3D section uses, their sizes, and how to
    replace the model or footage (re-run the assets stage).
-10. **Anything not verified**, copied from the reviews' `checks_not_done`.
+11. **Anything not verified**, copied from the reviews' `checks_not_done`.
 
 ## Do not
 

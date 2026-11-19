@@ -31,6 +31,10 @@ template/assets/<file>
 1. **Theme** from the design direction, in `template.json`.
 2. **Author each section**, chrome included, one file per distinct design.
    Every piece of text is an editable field; every colour is a theme token.
+   Every buyer's site inherits the structure search reads, so build it in
+   (`skills/meta/seo.md`, section 4): the hero headline is the one `<h1>`,
+   section headings `<h2>`, `alt` from a content field on every image, the
+   hero image not lazy, no JSON-LD or `<meta>` in a variant.
 3. **Write samples** with the fictional business from the concept. No fact
    about a real person or company, the placeholder phone number from the core
    skill, first names only on testimonials.

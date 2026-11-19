@@ -42,10 +42,11 @@ stages:
   - name: plan
     skill: pipelines/shared/plan-director
     requires: [brief]
-    produces: [site_plan, design_direction]
+    produces: [site_plan, design_direction, seo_plan]
     human_approval: true
     approval_shows: Pages, the sections on each, the visual direction, the subdomain
     success_criteria:
+      - seo_plan.json gives every page its own search, title and description, and the home page names the place where there is one
       - The plan fits the limits get_plan_limits returned
       - design_direction.json names one design language, not one per section
       - The concept in design_direction.json was chosen from three, is anchored in a fact about this business (or buyer), and passed the generic check
@@ -73,11 +74,12 @@ stages:
   - name: verify
     skill: pipelines/shared/verify-director
     requires: [lock]
-    produces: [shots, critique, review]
+    produces: [shots, audit, critique, review]
     review: true
     human_approval: false
     success_criteria:
       - A fresh critic that saw only the screenshots scored the current ones at the quality bar, or the user accepted the site under it
+      - "`studio audit` of every page of the draft reports no problems"
       - Every page of the real draft was captured at 390, 768 and 1280 px
       - No horizontal overflow, no broken image, no console error left unexplained
 

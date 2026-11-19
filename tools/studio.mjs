@@ -24,6 +24,8 @@ const HELP = `webto-studio
   checkpoint <project> <stage> [--approved "<what the user said>"] [--below-bar "<what the user said>"] [--note "..."]
   critic <project>                        the brief for a fresh critic agent: only the screenshots, never the plan
   critic <project> --result               the latest critique: weighted score, the bar, the fixes
+  audit <project> --page <label>=<url> [--page ...] [--published]
+                                          what search engines read: titles, descriptions, headings, alt, links, structured data
   log <project> "<decision>"              add a line to the decision log
   shoot <project> --page <label>=<url> [--page ...] [--widths 390,768,1280] [--dark] [--reduced-motion] [--tag <name>]
   crawl <project> <url> --authorized [--max 20] [--render]
@@ -140,6 +142,20 @@ const commands = {
     out(`Critic pass ${b.n} of at most ${b.max}. Give the text between the lines to a fresh agent, and nothing else: not the brief, the plan, the design direction, the code, earlier scores or your opinion.`);
     out(`-----\n${b.text}\n-----`);
     out(`When it is done: node tools/studio.mjs critic ${slug} --result`);
+  },
+
+  async audit({ _: [slug], flags }) {
+    const { audit } = await import("./lib/audit.mjs");
+    const r = await audit(slug, { pages: list(flags.page), published: flags.published === true });
+    out(`Search audit of ${r.pages.length} page(s)${r.published ? " on the public site" : " of the draft"}:`);
+    for (const p of r.pages) {
+      const h1 = (p.headings ?? []).filter((h) => h.level === 1).map((h) => h.text);
+      out(`  ${p.label}  ${p.path}\n    title (${(p.title ?? "").length}): ${p.title || "-"}\n    description (${(p.description ?? "").length}): ${p.description || "-"}\n    h1: ${h1.join(" | ") || "-"}\n    structured data: ${[...new Set(p.jsonLd?.types ?? [])].join(", ") || "-"}`);
+    }
+    out(r.problems.length ? `Problems (fix before the checkpoint):\n${r.problems.map((p) => `  - ${p}`).join("\n")}` : "No problems.");
+    if (r.warnings.length) out(`Warnings (judge each):\n${r.warnings.map((w) => `  - ${w}`).join("\n")}`);
+    out(`Written: projects/${slug}/reports/audit.json`);
+    if (r.problems.length) process.exitCode = 1;
   },
 
   async log({ _: [slug, ...words] }) {

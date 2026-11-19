@@ -4,6 +4,7 @@ import { join } from "node:path";
 import Ajv from "ajv";
 import YAML from "yaml";
 import { ROOT, SLUG_RE, StudioError, hashBundle, now, projectsDir, readJson, writeJson } from "./core.mjs";
+import { judgeSavedAudit, TITLE_MAX, DESC_RANGE } from "./audit.mjs";
 import { judgeCritique } from "./critic.mjs";
 
 const DEFS = join(ROOT, "pipeline_defs");
@@ -132,8 +133,72 @@ function layoutProblems(rel, plan, problems) {
   }
 }
 
+const searchWords = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 3);
+// Fields a builder may fill without a fact of the business behind them.
+const PROFILE_FREE = new Set(["businessType", "logoUrl"]);
+
+function seoPlanProblems(dir, rel, seo, problems, warnings) {
+  let plan = null;
+  let brief = null;
+  try {
+    plan = readJson(join(dir, "site_plan.json"));
+  } catch {}
+  try {
+    brief = readJson(join(dir, "brief.json"));
+  } catch {}
+  const pages = seo.pages ?? [];
+  if (plan) {
+    const planned = new Set((plan.pages ?? []).map((p) => p.slug));
+    for (const slug of planned) if (!pages.some((p) => p.slug === slug)) problems.push(`${rel}: no entry for the page "${slug || "home"}" of site_plan.json`);
+    for (const p of pages) if (!planned.has(p.slug)) problems.push(`${rel}: "${p.slug}" is not a page of site_plan.json`);
+  }
+  for (const k of ["title", "description", "query"]) {
+    const seen = new Map();
+    for (const p of pages) {
+      const v = String(p[k] ?? "").trim().toLowerCase();
+      if (!v) continue;
+      if (seen.has(v)) {
+        problems.push(
+          k === "query"
+            ? `${rel}: pages "${seen.get(v) || "home"}" and "${p.slug || "home"}" aim at the same search ("${p.query}"), so they compete. Give each page its own, or merge them`
+            : `${rel}: pages "${seen.get(v) || "home"}" and "${p.slug || "home"}" have the same ${k}`,
+        );
+      } else seen.set(v, p.slug);
+    }
+  }
+  for (const p of pages) {
+    const at = `${rel}: page "${p.slug || "home"}"`;
+    if (!searchWords(p.title).some((w) => searchWords(p.query).includes(w))) problems.push(`${at}: the title uses no word of its query "${p.query}"`);
+    if (String(p.title ?? "").length > TITLE_MAX) warnings.push(`${at}: the title is ${p.title.length} characters; search results cut it near ${TITLE_MAX}`);
+    const d = String(p.description ?? "").length;
+    if (d < DESC_RANGE[0] || d > DESC_RANGE[1]) warnings.push(`${at}: the description is ${d} characters; ${DESC_RANGE[0]} to ${DESC_RANGE[1]} reads whole in a result`);
+  }
+  const place = searchWords(seo.searcher?.place);
+  const home = pages.find((p) => p.slug === "");
+  if (home && place.length && !searchWords(`${home.title} ${home.h1}`).some((w) => place.includes(w))) {
+    problems.push(`${rel}: the home page's title and h1 do not name the place (${seo.searcher.place}). Someone searching nearby types it; put it in the title at least`);
+  }
+  const facts = new Set((brief?.facts ?? []).map((f) => String(f.field).toLowerCase()));
+  for (const f of seo.profile ?? []) {
+    if (PROFILE_FREE.has(f.field)) continue;
+    if (brief && !facts.has(String(f.from).toLowerCase())) {
+      problems.push(`${rel}: profile "${f.field}" comes from "${f.from}", which is not a fact in brief.json. Structured data says only what the business told you`);
+    }
+  }
+}
+
 function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
   const { def, rel, abs } = artifactPath(dir, pipeline, name, stage);
+  if (name === "audit") {
+    const r = judgeSavedAudit(dir, pipeline);
+    problems.push(...r.problems);
+    opts.warnings?.push(...(r.warnings ?? []).map((w) => `audit: ${w}`));
+    return existsSync(abs) ? { name, path: rel } : null;
+  }
   if (name === "critique") {
     const r = judgeCritique(dir, pipeline, { belowBar: opts.belowBar });
     problems.push(...r.problems);
@@ -162,6 +227,7 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
   }
   if (name === "design_direction" && data?.concept) conceptProblems(rel, data.concept, problems);
   if (name === "site_plan" && data) layoutProblems(rel, data, problems);
+  if (name === "seo_plan" && data) seoPlanProblems(dir, rel, data, problems, opts.warnings ?? []);
   if (name === "brief" && Array.isArray(data?.open_questions) && data.open_questions.length > 0) {
     problems.push(`${rel}: ${data.open_questions.length} open question(s) left. Ask the user, or move them to "declined" if they chose not to answer`);
   }

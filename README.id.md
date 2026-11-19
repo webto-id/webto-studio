@@ -74,8 +74,7 @@ tools/                preflight, check, checkpoint, tangkapan layar, pembaca sit
 projects/             pekerjaan Anda, satu folder per situs (tidak dilacak git)
 ```
 
-Dua hal yang menjaga permintaan satu kalimat tidak berakhir menjadi situs
-pasaran:
+Tiga hal masuk ke setiap situs, sependek apa pun permintaannya:
 
 - **Konsep sebelum desain.** Agen hanya menanyakan fakta kepada Anda, lalu
   menulis tiga ide yang diambil dari dunia usaha itu sendiri (namanya,
@@ -88,6 +87,15 @@ pasaran:
   tangkapan layar: desain, kemudahan pakai, kekhasan, dan isi. Daftar
   perbaikannya menjadi pekerjaan agen pembuat sampai situs mencapai ambang,
   atau Anda menerimanya apa adanya.
+- **Ditulis untuk ditemukan.** Bersama halaman, agen merencanakan pencarian
+  yang dijawab tiap halaman ("klinik gigi anak dago bandung"), judul,
+  deskripsi, dan judul utamanya, serta fakta usaha yang menjadi data
+  terstruktur, hanya dari yang Anda sampaikan. `studio audit` lalu membaca
+  halaman sungguhan seperti mesin pencari: satu `<h1>`, teks alt, teks
+  tautan, tautan ke halaman yang tidak ada, judul yang direncanakan, dan
+  setelah situs tayang: noindex, `robots.txt`, dan sitemap. Dokumen serah
+  terima memberi tahu pemilik apa yang hanya bisa mereka lakukan: Google
+  Business Profile, Search Console, domain.
 
 Tiga hal yang menjaga agen tetap jujur:
 
