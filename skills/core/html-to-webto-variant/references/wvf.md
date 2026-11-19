@@ -1,0 +1,925 @@
+# Webto Variant Format (WVF) — exact compiler reference
+
+Extracted from `@webto/variant-compiler` (the same code that runs in the uploader, on the server, and in `npx @webto-id/variant-check`). Every identifier is verbatim from the compiler. When this file and your intuition disagree, this file wins.
+
+## 0. File shape
+
+One `.astro` file: a `---` frontmatter block containing `interface Props`, then the template. The file is split with `/^\s*---[ \t]*\n([\s\S]*?)\n---[ \t]*\n?([\s\S]*)$/` (CRLF normalized).
+
+- No frontmatter → `error` `frontmatter`: "file must start with a `---` frontmatter block containing `interface Props`".
+- No markup → `error` `empty`.
+- Source upload limit **128 KB**; `*.sample.json` ≤ **16 KB** (measured as its RE-SERIALIZED JSON, so pretty-printing costs nothing); compiled IR ≤ **256 KB**; compiled CSS ≤ **64 KB**; script ≤ **8 KB**. `variant-check` ≥ 0.1.17 enforces the first two locally (`source-size`, `content-size`) — older CLIs reported `0 error(s)` for a file the uploader then rejected.
+- Per ACCOUNT: **300 standalone variants**. Variants that came from a template bundle belong to that template and do NOT count against it (they have their own per-template ceiling) — so authoring variants for templates never eats this budget.
+
+## 1. Frontmatter
+
+### 1.1 Imports
+
+Canonical: `import { t, img, url, video, Container, Button, EditUrlPill, ViewMoreLink, AddImageButton } from "webto/variant";` — import only what you use (`FormFields` and the `Product*` blocks come from the same module, §5c and §4d). Legacy aliases also accepted: `sanitizeUrl` (= `url`), `withUnsplashWidth` (= `img`), `resolveVideoSource` (= `video`), `sectionT`. Relative platform paths (`../lib/sanitize`, `../ui/Button.astro`, …) are tolerated. Any other module → `error` `import`. Unknown name → `error` `import`. `import type` is ignored.
+
+### 1.2 `interface Props`
+
+Required (`interface Props { … }` or `type Props = { … }`). `extends` → error. Fields: `name?: type;` — **every field should be optional** (`props-optional` warning; error in strict).
+
+| TS type | JSON Schema |
+|---|---|
+| `string` / `number` / `boolean` | primitive |
+| `"a" \| "b"` | string enum |
+| `T[]`, `Array<T>`, `ReadonlyArray<T>` | array |
+| `{ a: string; b?: number }` (nested ok) | object |
+| `\| undefined` / `\| null` | stripped |
+
+Anything else (`Date`, `Record`, `unknown`, named interfaces, non-literal unions) → `error` `props-type`.
+
+**`/** … */` doc comments are the AI's prompt for that field, never an editor label** — the editor derives its label from the key name and never reads this text. Nested fields keep their own doc too (`facts?: Array<{ /** … */ label: string }>` — `label`'s comment survives independently of `facts`'s). Write it as an instruction: what the text is, how long, one concrete example.
+
+```astro
+/** Profession line under the name, ≤4 words. @example Konsultan Pajak */
+roleTitle?: string;
+/** Quick facts under the buttons. @max 4 */
+facts?: Array<{ /** Fact label, e.g. Pengalaman */ label: string; /** Fact value, e.g. 8+ tahun */ value: string }>;
+```
+
+Recognized tags (folded into the stored schema, stripped from the prose): `@example <text>`, `@max <n>` / `@min <n>` (array → item count; string → character count), `@default <text>` (metadata only — does not seed a value; a scalar's default stays the destructuring default below), `@title <text>`. **A tag's value runs to the next KNOWN tag, so an `@` inside it is ordinary text** — `@example halo@studio.design`, `@example @nadiraayu` and `@example https://unsplash.com/@namaanda` all store the whole value (compiler 0.1.20; before that the value was cut at the first `@` and the remainder leaked into the description). No quoting needed: quotes or backticks around the value are kept verbatim and end up in the example the AI imitates. An extension field with no doc at all, or a doc under 15 characters with no example signal (`@example`, "e.g.", "mis.", "contoh", or a quoted example), is flagged — `ext-field-undocumented` (promoted to error under `--strict`) or `ext-field-doc-thin` (warning always).
+
+### 1.2b Which language, where
+
+Four different pieces of text live in one file, each read by a different consumer — mixing them up is the most common review bounce:
+
+| Text | Language | Read by |
+|---|---|---|
+| `/** … */` doc comment on a field | **English prose** — same convention as every base field's own description and every built-in variant's `description`/`fits`/`mood` (`schema.md` §"How the compiler classifies") | The AI, as its instruction for filling this field |
+| `@example …` / `e.g. …` value *inside* a doc comment | Illustrative only — Indonesian is fine, it's just a sample value | The AI, as one concrete example to imitate; not a language directive |
+| Destructuring default (`heading = "Kenapa memilih kami"`) | **Bahasa Indonesia**, short, replaceable (`design.md` §"sample copy") | The buyer, in the marketplace preview before any real content is filled in |
+| Final generated site content (the JSON the wizard eventually writes into this field) | The buyer's own site language — Bahasa Indonesia by default, or whatever `site.language` is | Nothing here decides this — it's a platform-wide prompt rule applied uniformly, independent of any doc comment or default in this file |
+
+Nothing compiles differently for an Indonesian doc comment — the compiler doesn't check language — but it breaks the one convention every base field and every built-in variant already follows, and a template reviewer will bounce it back to English. The same rule applies to a bundle variant's own `description`/`fits`/`mood` when writing a `template.json` (see the template skill's `manifest.md`).
+
+### 1.2c `@pairWith` — keep a sibling array index-aligned with a base array
+
+Real designs often carry richer per-item metadata than a base array's fixed item shape allows — a timeline's `steps[]` has `title`/`description`/`icon`, but the source also wants `company`/`period` per step. **Do not add those keys directly onto a base array's item shape** — the compiler only warns (`props-unknown-item-key`, now promoted to error under `--strict`, §7) and the platform then silently strips them at save time; nothing stores that data.
+
+The supported pattern: declare a **separate extension array** with its own item shape, and tag it `@pairWith <targetField>` naming the base (or another extension) array it rides alongside:
+
+```astro
+interface Props {
+  steps?: Array<{ title: string; description: string; icon?: string }>; // base field, untouched
+  /** Extra detail for each step — same length and order as steps. @pairWith steps */
+  stepsMeta?: Array<{
+    /** Company name for this step, e.g. PT Sinar Jaya */
+    company?: string;
+    /** Period covered, e.g. 2019-2021 */
+    period?: string;
+  }>;
+}
+```
+
+The editor renders `steps` and `stepsMeta` as two separate array cards (this does **not** merge them into one card — that would need actual compiler/schema changes, out of scope), but keeps them **index-locked**: adding, removing, or reordering an item in either one applies the identical operation to every other field in the pairing group, so item *N* of `stepsMeta` always describes item *N* of `steps`. The AI wizard's variant catalog is told the same constraint (`describeVariantFields` appends "must have the same length and order as steps") so generated content doesn't drift out of alignment either.
+
+**The paired array always has exactly one slot per base item.** The editor pads it with blank objects up to the base's length (clamped by the paired field's own `@max`) and offers no add/delete on its card — a slot disappears only when its base item does. That is what makes partial data possible: to give an avatar to the 1st and the 5th testimonial only, leave slots 2-4 blank. Before this, a shorter paired array silently shifted everything after the gap, so item 5's avatar landed on testimonial 2. Read it defensively anyway — `const avatarOf = (i) => (testimonialsAvatars[i] ?? {}).url;` — since old content may predate the padding.
+
+**Name the item field so the side panel knows it holds a picture.** Inline edit goes by the explicit `data-edit-image` marker, but the side panel decides from the NAME: a `url` inside an array whose own name reads as imagery (`…Avatars`, `…Images`, `…Photos`, `…Banners`, `…Thumbnails`, `gallery…`) gets the image uploader; anywhere else it gets a plain URL box with the link picker. One exception, deliberate: if the item shape ALSO has a real image field (`logos[].image` + `logos[].url`), the `url` is treated as that item's link, not its picture.
+
+**Naming is compiler-enforced, not a suggestion.** Since the two cards can never be visually merged, the field's name is the buyer's only clue the two cards move together — `steps` + `avatars` reads as two unrelated lists that happen to change in lockstep (confusing, not obviously a feature); `steps` + `stepsAvatars` or `stepsDetails` reads as linked at a glance. The paired field's name **must start with its target's name at a real camelCase word boundary** (`stepsDetails` ✓, `stepsx` ✗ — that's not a word boundary) — enforced as `pair-with-bad-name`. `Details` is a good default suffix when nothing more specific fits (`Meta`/`Data` read as developer jargon to a buyer); a more descriptive suffix is fine too as long as the prefix matches (`stepsTimeline` is a legitimate name for `@pairWith steps`).
+
+**The paired field must be array-of-OBJECT, never a primitive array** (`stepsAvatars?: Array<{ url: string }>`, not `stepsAvatars?: string[]`) — enforced as `pair-with-not-object`. This isn't just style: a primitive array renders through a different editor component (`PrimitiveArrayEditor`) that the structural sync was never wired to, so a `@pairWith` on one would compile clean and silently never actually sync in the editor. Wrap even a single value in an object.
+
+Validation (always an error, not gated by `--strict`): `pair-with-unknown` if the named target field doesn't exist (typo-check your target name), `pair-with-not-array` if either side isn't an array, `pair-with-bad-name` if the name doesn't start with the target's, `pair-with-not-object` if the paired field's items aren't an object. The target can be the base field itself, or another extension array declared anywhere in the same file (order doesn't matter). Several extension arrays may all `@pairWith` the same target — they all sync together.
+
+### 1.3 Destructuring and consts
+
+- Only `const { a, b = "default", key: local } = Astro.props;`. Rest `...x`, nested patterns → error `props`.
+- `const x = <expr>` with the expression subset below (a TS annotation on the const is ignored). `let`/`var`/`function`/`if`/`for`/`return`/`await`/`export` → error `statement`. `as` casts → error `ts-cast`. `Astro.*` other than `Astro.props` → error `astro`. Two special forms are allowed: `const t = sectionT(Astro.locals)` and `const editChrome = (Astro.locals as {…})?.editChrome === true`.
+
+**Defaults may be multi-paragraph** (compiler 0.1.15). A plain string takes JavaScript escapes, and a template literal may span lines and hold commas, semicolons, backslashes and `${...}`:
+
+```astro
+const {
+  content = "Satu.\n\nDua, tiga.",
+  alt = `Paragraf satu, ada koma.
+
+Paragraf dua, ada juga.`,
+} = Astro.props;
+```
+
+The first form needs the escape, not a raw line break -- a raw newline inside a plain string is still (correctly) `unterminated string`. Before 0.1.15 the escaped form died the same way and the template literal died as `unterminated template literal` on its first comma, which made a multi-paragraph `text-block` default impossible to write; if you worked around it with a one-paragraph default and the full text only in `template.json`, you can now put the real text back.
+
+### 1.4 Expression subset (frontmatter and `{}` in template)
+
+Literals (strings, template literals, numbers, `true/false/null/undefined`), identifiers, `a.b`, `a[i]`, `f(x)`, optional chaining `?.`, unary `! - + typeof`, binary `?? || && === !== == != < > <= >= + - * / %`, ternary, array/object literals (shorthand ok, no computed keys, no spread), **expression-bodied** arrow functions `(x, i) => …` (block bodies → error `arrow-block`), and JSX inside expressions (`cond && <div/>`, `items.map(i => <li/>)`).
+
+Rejected: spread (`spread`), `new class function await yield import this super delete void in instanceof` (`forbidden`), `**`, bitwise ops, assignments.
+
+Identifiers in scope: props, consts, imports, arrow params, and builtins `t img url video editChrome Math String Number Boolean Array undefined`. Anything else → `error` `unknown-id`.
+
+Runtime evaluation is sandboxed: own properties only (no `__proto__`/`constructor`); `Math.{min,max,floor,ceil,round,abs,trunc,sign,sqrt,pow}`; `Array.isArray`/`Array.from`; array methods `map filter slice join includes indexOf some every find findIndex flat concat at`; string methods `slice substring includes startsWith endsWith trim toUpperCase toLowerCase split replace replaceAll indexOf padStart padEnd charAt at repeat`; number `toFixed toLocaleString toString`. Other methods return `undefined`. Arrays > 5000 items throw; 200 000 evaluation steps per render.
+
+### 1.5 Schema derivation
+
+`base` = the section type's content schema (see `schema.md`). For each `Props` field: if the name exists in the base → it is a **base field** (`usedFields`; the editor uses the base type; a type mismatch is warning `props-type-mismatch` — checked all the way down, so `features?: string[]` against a base of `Array<{text: string}>` is flagged even though both are "array" at the top level, and a key inside a base array item that the base item shape doesn't have is `props-unknown-item-key`, since the editor's field UI for that array is generated from the base item schema and would never populate it). Otherwise → **extension field** shown in the editor under "Pengaturan Variant" (see §1.2 for its doc-comment rules). A key destructured but not declared → warning `props-undeclared` (added as string). `hiddenFields` = base fields the variant never reads — they disappear from the editor for this variant.
+
+## 2. Template
+
+### 2.1 Allowed tags
+
+HTML: `a abbr address article aside b bdi bdo blockquote br button caption cite code col colgroup data dd del details dfn div dl dt em figcaption figure footer h1–h6 header hr i img ins kbd label li main mark nav ol p picture pre q s samp section small source span strong sub summary sup table tbody td tfoot th thead time tr u ul var video audio wbr track`
+
+SVG: `svg path circle rect line polyline polygon g defs linearGradient radialGradient stop clipPath mask text tspan ellipse symbol pattern filter feGaussianBlur feOffset feBlend feColorMatrix feMerge feMergeNode title desc`
+
+Everything else → `error` `tag` — including `iframe form input select textarea object embed link meta base template noscript canvas dialog`. `<Fragment>`/`<>` flatten. Capitalized tags must be one of the macros of §5 (`component` error otherwise). `<style>` and `<script>` are raw blocks (cannot be self-closing). A form section still gets a real form: place `<FormFields />` (§5c) inside your layout and the platform renders the form tags for you — the ban is on AUTHORING them, not on having one.
+
+### 2.2 Attributes
+
+1. `on*` → `error` `attr-handler` (use a `<script is:inline>`).
+2. `srcdoc`, `set:html`, `set:text`, `is:raw`, `define:vars`, `formaction` → `error` `attr`.
+3. `data-*`, `aria-*`, `xlink:*`, `class:list` → always allowed.
+4. Otherwise the name must be in the global allowlist: `class id style title lang dir role tabindex hidden href target rel download src srcset sizes alt width height loading decoding fetchpriority type open datetime cite start reversed value colspan rowspan scope headers for controls autoplay muted loop playsinline poster preload kind srclang label default media translate draggable inputmode itemprop itemscope itemtype` + SVG presentation attrs (`viewBox xmlns fill stroke stroke-width … d cx cy r rx ry x y x1 y1 x2 y2 points transform opacity … preserveAspectRatio vector-effect`).
+5. Static `href`/`src`/`poster`: `javascript:`/`data:`/`vbscript:` → `error` `url`; `https?://` on `src`/`poster` → warning `hardcoded-image` (images must come from content fields).
+6. Static `style`: `url(`/`expression(`/`@import`/`behavior:` → `error` `style-url`; `position: fixed` → `error` `fixed` everywhere, a WVF navbar or banner included (the platform makes the navbar's wrapper sticky itself; keep the root in normal flow); hex/rgb/hsl → warning `hardcoded-color`; numeric `border-radius` → warning `hardcoded-radius`; `font-family` without `var(--font-` → warning `hardcoded-font`.
+7. `target="_top"` → error; `rel` with `preload|prefetch|import` → error. `<a target="_blank">` without `rel` gets `rel="noopener"` added.
+
+URL attributes (`href src action formaction poster data-lightbox-src xlink:href`) are always sanitized at render (`javascript:` → `#`), so wrapping with `url()`/`img()` is belt-and-braces.
+
+`class` and `class:list` may both be present; they are merged into one `class` attribute. `class:list` accepts strings, nested arrays (falsy dropped) and `{ "cls": bool }` objects.
+
+### 2.3 Editor contract (what makes the variant editable)
+
+| attribute | rule |
+|---|---|
+| `data-edit-field="path"` | the element's text is the content field `path` (`headline`, `items.${i}.title`) |
+| `data-edit-image="path"` | an `<img>` (or empty placeholder `<div>`) bound to an image URL field |
+| `data-edit-image-bg` | wrapper whose CSS background image is editable |
+| `data-edit-icon="path"` | editable icon/emoji span |
+| `data-edit-group="list[].field"` + `data-edit-group-value={v}` | the element's text is a value SHARED by several items of `list` (a group heading, e.g. a shelf per `category`); renaming it renames every item holding it (§2.3a) |
+| `data-edit-url="field"` on a `<a class="relative">` | compiler sugar: emits an `EditUrlPill` after the children; the link destination becomes editable |
+| `<EditUrlPill field="ctaUrl" value={ctaUrl} />` inside a `relative` `<a>` | explicit form of the same pill |
+| `data-track="cta"` | auto-added to any `<a href>` with an editable descendant; `Button href` and `ViewMoreLink` always emit it |
+| `id="…"` | warning `id-attr` — the editor's click walker stops at ids, and every section already has an anchor (§2.3c); use `data-*` |
+| `aria-hidden="true"` (static) | suppresses the dead-text rule for the subtree (decorative text) |
+
+**Dead-text rule**: any literal text node matching `[A-Za-z]{2,}` that is not inside `aria-hidden="true"` or `<svg>` → warning `dead-text`; **error on submit (strict)**. Every visible word must come from a content field (`data-edit-field`) or `t("key")`. `<img>` without `alt` → warning `img-alt` (error on submit).
+
+**Field-text rule** (`text-not-editable`, `variant-check` ≥ 0.1.40): every `{…}` that prints the TEXT of a content field (a string prop, an item of an array field, an extension or `@pairWith` field) must sit in an element carrying `data-edit-field` with that field's path — on the element itself, or on an ancestor that wraps nothing but this value (`<h2><span data-edit-field="heading">{heading}</span></h2>` and `<p data-edit-field="x"><strong>{x}</strong></p>` both count). Otherwise the owner clicks the words and nothing happens. **This is an error on every upload, `--strict` or not.** Versions already approved are not re-rejected; the rule applies when you upload a new version, and an `.astro` that is byte-identical to the stored one passes as it did.
+
+The compiler follows the value back to its stored path, so a helper or alias is no excuse — and no obstacle either. Write the path the value is STORED under (`featuresDetails.${i}.integrity`, never `spec.integrity`):
+
+```astro
+---
+const spec = (i) => featuresDetails[i] ?? {};   // featuresDetails: @pairWith features
+const lead = features[0] ?? {};
+---
+{features.map((f, i) => (
+  <div>
+    <h3 data-edit-field={`features.${i}.title`}>{f.title}</h3>
+    <p data-edit-field={`featuresDetails.${i}.integrity`}>{spec(i).integrity}</p>
+  </div>
+))}
+<p data-edit-field="features.0.description">{lead.description}</p>
+```
+
+- Inside a loop take the index (`items.map((item, i) => …)`) and use it in a template literal: ``data-edit-field={`items.${i}.title`}``. `.slice(0, n)` keeps the indexes; after `.filter()` / `.sort()` they are not the stored ones — the lint can only warn (`text-editable-unsure`), so map over the whole array and hide items with a condition instead.
+- **A second visible copy needs the marker too** (the desktop table and its mobile cards, a duplicated `lg:hidden` label). The same path may appear on several elements; the editor updates all of them. A purely decorative copy goes under `aria-hidden="true"`: the rule skips hidden text whose field is editable elsewhere (a marquee's second track, a badge repeating a code shown beside it). Hidden text with NO editable copy is a warning, `text-not-editable-hidden`.
+- Not flagged: computed text (numbers, `Math.*`, `title.toUpperCase()`, a template string mixing a field with other text — nothing to edit in place), attributes (`alt`, `aria-label`, `title`), `t()` labels, the chrome context props (`pages`, `footerPages`, …), and a URL field printed as its own link text when `data-edit-url`/`<EditUrlPill>` already edits it. `siteName` IS content: mark it (`<span data-edit-field="siteName">`).
+- A marker naming a different path than the value it wraps → warning `text-edit-field-mismatch` (the edit would be saved to the wrong field).
+- A list item reached through something the lint cannot follow (a helper that chunks the list into rows, an array literal of slices) → warning `text-editable-unsure` (≥ 0.1.41). Loop the list itself with its index where you can.
+
+### 2.3a Group headings (`data-edit-group`)
+
+Grouping items under a heading per distinct value — shelves per `category`, a timeline per `year`, a menu per `section` — prints a value that several items share. No `data-edit-field` path is right for it: `products.${first}.category` renames ONE product and splits the shelf. Mark the heading with the group instead:
+
+```astro
+---
+const shelves = products.map((p) => p.category || "").filter((c, i, all) => all.indexOf(c) === i);
+---
+{shelves.map((c) => (
+  <div>
+    <h3 data-edit-group="products[].category" data-edit-group-value={c}>{c || t("other")}</h3>
+    <ul>
+      {products.map((p, i) => (p.category || "") === c && (
+        <li data-edit-field={`products.${i}.title`}>{p.title}</li>
+      ))}
+    </ul>
+  </div>
+))}
+```
+
+The group may come from a `@pairWith` list too — group labels that live in a detail list beside the base items:
+
+```astro
+---
+// productsDetails: Array<{ zone?: string }>  /** … @pairWith products */
+const zones = productsDetails.map((d) => d.zone || "").filter((z, i, all) => all.indexOf(z) === i);
+---
+{zones.map((z) => (
+  <div>
+    <h3 data-edit-group="productsDetails[].zone" data-edit-group-value={z}>{z || t("other")}</h3>
+    <ul>
+      {products.map((p, i) => (productsDetails[i]?.zone || "") === z && (
+        <li data-edit-field={`products.${i}.title`}>{p.title}</li>
+      ))}
+    </ul>
+  </div>
+))}
+```
+
+Renaming "Rak dingin" changes `zone` on the `productsDetails` items that held it and nothing in `products`; every item keeps its index, so the pairing stays aligned.
+
+- `data-edit-group` is a literal `"<list>[].<field>"`: a top-level content list (base, extension or `@pairWith` — all supported; a list nested inside another list is not yet) and a plain text field of its items. `data-edit-group-value` is the group value itself (the loop variable), even when the text shows a fallback label for the unnamed group.
+- The owner clicks the heading and types a new name: every item whose `field` held the old value gets the new one. A name that already exists merges the two groups (the editor asks first). Empty names are refused.
+- Build the groups with what the expression subset has: `.map((p) => p.field)`, then `.filter((c, i, all) => all.indexOf(c) === i)` to dedupe (`.filter(Boolean)` to drop the empty group). `new`, spread (`new Set`, `[...x]`) and `.sort()` are not available in a variant.
+- Loop the items inside a group over the WHOLE list with its index and a condition (as above), so their `data-edit-field` paths stay the stored ones.
+- A group value printed without the attribute is the error `text-edit-group-missing` (≥ 0.1.41); the message spells the exact attributes. A wrong path, a non-text field, a nested list (`rows[].items[].tag`), or a value that is not the printed group → `edit-group-invalid`. Grouping inside a nested list is not supported: the lint only warns there.
+- **Never restructure the layout, drop the grouping, or duplicate a field to make this rule go away.** The grouped design is the point of the variant; `data-edit-group` is the fix.
+
+### 2.3b Content-driven CSS backgrounds (`data-edit-image-bg`)
+
+A background image that comes from content -- including the `background-attachment: fixed` parallax look -- is marked, not written. The variant never emits `url(`; the platform fills `background-image` at render from the field named by `data-edit-image`, sanitized and width-capped at 1600px, exactly as its own `CtaBgImage` does:
+
+```astro
+<section class="relative isolate overflow-hidden py-24">
+  <div data-edit-image="images.0.url" data-edit-image-bg
+       class="absolute inset-0 -z-10 bg-fixed bg-cover bg-center"></div>
+  <Container>…</Container>
+</section>
+```
+
+**How the owner edits it.** The photo layer sits UNDER your content (`-z-10` inside an `isolate` section), so no click ever lands on it directly. The editor asks what is *visible* at the click point instead: a click on empty space, where the eye sees the photo through the transparent `Container`, opens the image dialog, and so does the 📷 pill in the layer's top-right corner. A click on content (text, a link or button, a field, an image, or a card with an opaque or glass background) opens the section panel. Design with that in mind:
+
+- **Always render the photo element**, even when the field is empty. `{images[0]?.url && <div data-edit-image-bg …>}` leaves an empty hero with nothing to click, so the owner cannot *add* a photo inline. An empty field already renders no `background-image`, so give the layer a fallback colour (`bg-muted`) instead. Lint: `edit-image-bg-conditional`.
+- **Keep tints and scrims empty** (`<div aria-hidden="true" class="absolute inset-0 -z-10 bg-foreground/60"></div>`, no children). An empty decorative layer counts as see-through. A layer with children counts as content, unless you mark it `data-edit-image-bg-overlay`. The same applies to a scrim laid over an ordinary `<img data-edit-image>`: a click on the photo through an empty scrim opens the dialog, so `pointer-events-none` on the scrim is optional.
+- **`data-edit-image-bg` always goes with `data-edit-image="<field>"`** on the same element. The marker on its own has nothing to fill the background from. Lint: `edit-image-bg-no-field`.
+- The photo only receives clicks where it is actually painted. A `clip-path` that cuts part of it away leaves that part to the section panel.
+
+Before 2026-09-24 the platform only followed `closest()`, so a variant built exactly like the example above could not open the dialog at all, and even the pill was painted but not clickable. Variants already published were fixed on the platform side, with no re-upload needed.
+
+- `bg-fixed` (or `background-attachment: fixed` in `<style>`) keeps the photo still while the page scrolls. It is NOT `position: fixed`, which stays a compile error: the background is still clipped to its own element's box, cannot cover anything outside it, and takes no clicks.
+- An empty field renders no `background-image` at all, so a broken `url()` never ships. Your own `style` on the same element is kept and merged.
+- A dynamic `style` that assembles `url(...)` is `error` `style-url`. That form was always discarded at serialization; until compiler 0.1.19 it was discarded **silently**.
+- `position: sticky` is not a substitute: clipping the tall image needs `overflow: hidden` on the wrapper, which makes that wrapper the sticky element's scrollport -- so it sticks to a box that never scrolls. Unclipped it bleeds into the next section.
+
+### 2.3c Anchor links (`#contact`)
+
+In-page links are allowed. Both `href="#contact"` and `href={url(ctaUrl)}` with a `#…` value lint clean, because `#` is a safe URL.
+
+**Every section already has an anchor.** The renderer gives each section's wrapper an `id` derived from its section TYPE (`scroll-margin-top: 80px` included, so a sticky navbar does not cover the heading). A user variant gets the anchor of the type it declares:
+
+| section type | anchor |
+|---|---|
+| `hero` | `#hero` |
+| `features-grid` | `#features` |
+| `text-block` | `#text` |
+| `gallery` | `#gallery` |
+| `stats` | `#stats` |
+| `products` | `#products` |
+| `testimonials` | `#testimonials` |
+| `faq` | `#faq` |
+| `cta` | `#cta` |
+| `pricing` | `#pricing` |
+| `contact` | `#contact` |
+| `footer` | `#footer` |
+| `steps` | `#steps` |
+| `video` | `#video` |
+| `logo-cloud` | `#logos` |
+| `team` | `#team` |
+| `blog` | `#blog` |
+| `map` | `#map` |
+| `banner` | `#banner` |
+| `countdown` | `#countdown` |
+| `form` | `#form` |
+
+- Any other type uses its own name: `before-after` → `#before-after`. There is no `about` type: an about/story section is usually a `text-block` (`#text`).
+- A second section of the same type on the page gets `-2`, a third `-3`: `#features`, `#features-2`. Hidden sections are not counted.
+- Anchors are per page. From another page, link `/#contact` (or `/layanan#pricing`) rather than `#contact`.
+- Header chrome (`navbar`, `banner`) and footer chrome are counted separately from the page's sections.
+
+So a navbar item or a CTA points at `#contact`, `#pricing` or `#faq` and nothing else is needed. **Do not put your own `id` on the section or on an element in it** (lint `id-attr`). It duplicates the platform's anchor, and the editor's click walker stops at the first `id` it meets, so clicks inside the section stop opening its panel.
+
+Not supported: an anchor to an ELEMENT inside a section (`#paket-premium` on one pricing card). The section is the smallest target.
+
+### 2.4 Root wrapper
+
+The compiler adds no root element. At render the host wraps your nodes in `<div data-wv-root data-wv-inst="<uid>">`; CSS is scoped to `[data-wv-inst="<uid>"]`; the script's `root` variable is that wrapper. Defense in depth at serialization: `script iframe object embed form input textarea select link meta base style template frame frameset applet noscript html head body` are never emitted even if present in IR.
+
+### 2.5 Power-word markers (automatic — but a split field kills them)
+
+Site owners mark up fragments of ordinary text fields with paired delimiters, stored as plain strings in the content JSON:
+
+`**bold**` · `*italic*` · `==highlight==` · `%%block highlight%%` · `@@circled@@` · `++brush underline++` · `__underline__` · `^^accent^^` · `[text](url)`
+
+**You never parse or render these.** The site turns them into HTML in ONE central place — an HTMLRewriter pass over every `[data-edit-field]` element — so no variant component knows about markers. Write `<span data-edit-field="headline">{headline}</span>` as usual and it just works. (`set:html` is rejected by the compiler anyway.)
+
+Three consequences worth designing around:
+
+- **A marker pair must live inside ONE text node.** Separate text nodes are processed independently by design, so a field whose value you split across elements loses its markers silently — the buyer types `==diskon==` and the page shows a literal `==diskon==`. The usual way to trip this is per-word animation: `{headline.split(" ").map((w) => <span class="word">{w}</span>)}`. If a design needs that effect, apply it to a field you accept will never carry markers (a short eyebrow/label), not to the headline.
+- **Nothing inside the field element may interrupt the text**, for the same reason: `<span data-edit-field="x">{a}<br />{b}</span>` is two text nodes.
+- **Markers do NOT render in the marketplace preview** — the standalone variant preview page and the dashboard's in-browser preview both bypass that rewriter. So keep markers out of `sample.json`: they would show as raw `==…==` in your own listing and read as a bug. They belong in real site content, not showcase fixtures.
+
+Text emitted by `t("…")` is fixed UI chrome and is not marker-processed — correct, and nothing to do about it.
+
+### 2.6 Host-level behaviours a variant opts into
+
+Some things the SITE does centrally: the variant only marks elements and gets the behaviour for free — no script of its own, so no script check. This is the complete list as of compiler 0.1.12.
+
+| Behaviour | What the variant writes | Where it runs | Live in the marketplace preview? |
+|---|---|---|---|
+| Power-word markers | nothing — automatic on every `[data-edit-field]` | HTMLRewriter over the page | **no** (§2.5) |
+| Motion effects | `data-wv-effect` (+ `data-wv-delay` / `-duration` / `-strength`) | platform runtime injected by the layout | yes, and in `--out` previews (§5b) |
+| **Image lightbox** | `data-lightbox` on the `<img>` | one lightbox in the layout, delegated click on `document` | **no** |
+| CTA click tracking | nothing when the link holds an editable **field**; `data-track="cta"` by hand otherwise, `data-track="none"` to opt out | analytics listener in the layout | no |
+| Site-name type scale (chrome only) | `data-site-name` on the brand text | layout CSS + the editor's live preview | n/a |
+
+**Image lightbox.** Click-to-enlarge is the de-facto standard for photo sections here — 11 of the platform's 12 gallery components have it, so a seller gallery without it reads as the broken one when a buyer puts them side by side. It costs four attributes:
+
+```astro
+<div data-lightbox-group class="grid gap-4 sm:grid-cols-3">
+  {images.map((im, i) => (
+    <img src={img(im.url, 800)} data-lightbox data-lightbox-src={img(im.url, 1600)}
+         data-edit-image={`images.${i}.url`} data-caption={im.alt} alt={im.alt ?? ""} loading="lazy" />
+  ))}
+</div>
+```
+
+- `data-lightbox` makes the image enlargeable; `data-lightbox-src` is the full-resolution version (falls back to the `src`, so a small thumbnail can still open at 1600px); `data-caption` shows under the big image; `data-lightbox-group` bounds prev/next — the search never escapes that container, which is exactly what keeps one gallery from paging into another.
+- **`data-lightbox` goes on the `<img>`, `data-lightbox-group` on the container around ALL of them**, never on the same element. Wrapping each image in `<a href={img(url, 1600)} data-lightbox data-lightbox-group="…">` is the tempting shape, and until 2026-09-24 it opened an empty overlay without prev/next: an `<a>` has no `src`, and a group attribute on the trigger groups only itself. The platform now resolves that shape (the link's href, else the image inside) and pages through same-named triggers within the section, so published variants work. Write the documented shape anyway. Lints: `lightbox-not-img`, `lightbox-group-on-trigger`.
+- Free with it: close button, backdrop click, prev/next arrows, `Escape`, and a counter.
+- In the editor the lightbox **stands down** (it would stack over the image-upload dialog), and it is **not active on the marketplace preview page**, which renders without the layout. Both are expected — do not pull the attributes back out because the preview looks inert.
+- Use it on anything that shows off photographs (gallery, portfolio, bento, before/after) unless the image is purely decorative background.
+
+**CTA click tracking.** The compiler adds `data-track="cta"` to any `<a href>` outside a `<Button>` that carries editable content — the `data-edit-field` / `data-edit-url` may be **on the anchor itself or on a descendant**, both count (compiler ≥ 0.1.11). That matters because the anchor-itself shape is the natural one for contact links, where the text IS the field value and the href derives from it:
+
+```astro
+<a href={url("mailto:" + email)} data-edit-field="email" class="underline">{email}</a>
+```
+
+Before 0.1.11 only descendants counted, so exactly these links went untracked — and for a service site a tapped phone number IS the conversion, not the hero button that was already tracked. A variant compiled earlier keeps the markup it was uploaded with; re-upload to pick this up.
+
+Only `data-edit-field` counts, **not `data-edit-url`**: the first means the link's TEXT is buyer content, the second only means its destination is configurable — which is exactly how a variant spells an icon-only social link (the pill is the only way to edit an `<svg>`-only link inline). Social icons are therefore NOT counted, matching the platform's own `SocialIcons`, so a seller footer and a platform footer on the same page agree.
+
+Still NOT counted, deliberately: a link whose label is fixed chrome (`t(…)`) or hardcoded — that is navigation — and a link wrapping only an image or icon (a linked photo card, a logo cloud). Counting every one of those would inflate the buyer's conversion rate rather than measure it. If such a link really is a call to action, write `data-track="cta"` on it yourself; a hand-written one is always respected and never duplicated.
+
+Going the other way, **`data-track="none"`** opts a link out and leaves no attribute behind (compiler ≥ 0.1.12) — for the link that does carry an editable field but is not a conversion: a photographer credit, a social handle shown as text.
+
+**`data-site-name`** is chrome-only (§4b): the site-name font-size setting is applied through `[data-site-name]`, so a navbar variant that prints the site name without that attribute ignores the owner's Style-tab setting and does not update live while they drag it.
+
+### 2.7 Video: one field, two shapes
+
+`videoUrl` is **polymorphic**. The editor's own help text says so — *"paste a YouTube/Vimeo URL, or upload a video file (MP4/WebM, max 50 MB)"* — and both land in the same string. A variant that assumes one shape breaks on the other: `<video src={videoUrl}>` shows a dead player for a pasted link, and a bare outbound link wastes a file the buyer took the trouble to upload.
+
+Do not try to clone the platform's `VideoLightbox` — four separate rules close it, permanently and on purpose:
+
+| It uses | WVF status |
+|---|---|
+| `<iframe>` | `error` `tag`, never emitted even if present in the IR, and `createElement('iframe')` is rejected too |
+| `position: fixed` for the overlay | `error` `fixed`, everywhere, CSS and utilities alike |
+| `define:vars` | `error` `script-define-vars` |
+| `<dialog>` / `showModal()` | both on the reject list |
+
+The supported pattern is to branch, with `video()` (§5) doing the sniffing:
+
+```astro
+const v = video(videoUrl);   // { kind: "file" | "embed" | "", src, poster }
+...
+{v.kind === "file" && (
+  <video controls playsinline preload="none" poster={img(posterImage, 1600)} src={v.src}
+         class="aspect-video w-full rounded-lg object-cover"></video>
+)}
+{v.kind === "embed" && (
+  <a href={v.src} target="_blank" rel="noopener" class="relative block overflow-hidden rounded-lg">
+    <img src={v.poster || img(posterImage, 1600)} data-edit-image="posterImage" alt="" loading="lazy" class="aspect-video w-full object-cover" />
+    <span data-edit-field="watchText" class="absolute bottom-4 left-4 …">{watchText}</span>
+    <EditUrlPill field="videoUrl" value={videoUrl} anchor="below" />
+  </a>
+)}
+```
+
+`video()` needs `variant-check` ≥ 0.1.18 (compiler 0.1.10); on an older CLI the identifier is simply unknown. The tags `video audio source track` and the attributes `controls autoplay muted loop playsinline poster preload` have always been on the allowlists — an uploaded video plays **inside** your variant, with no script and therefore no script check. An embed can only ever be linked out to; that is the whole reason `v.src` is the watch URL and not a player URL. When a section's entire point IS an embedded YouTube player, stop authoring and use the built-in `video` section type (`schema.md`) — it owns the iframe and its own lightbox.
+
+## 3. CSS
+
+- Any number of `<style>` blocks (concatenated, scoped). `is:global` / `define:vars` → error. Each block ≤ 64 KB.
+- Rejected: `@import` (`css-import`), `@font-face` (`css-font-face`), `expression(` (`css-expression`), `behavior:`/`-moz-binding:` (`css-behavior`), `position: fixed` (`fixed`).
+- `url()`: `data:image/svg+xml…` and `#fragment` allowed; `images.unsplash.com` / `images.pexels.com` → warning; any other host → `error` `css-url`.
+- Theme warnings (error on submit): hex/rgb/hsl colors (`hardcoded-color`), numeric `border-radius` (`hardcoded-radius`), `font-family` without `var(--font-…)` (`hardcoded-font`). `:root`/`html`/`body` selectors are rewritten to the variant root (`css-root` warning).
+- Scoping: every selector gets the root prefix; a top-level `&` = root (`&:hover` → `root:hover`); CSS nesting inside a rule is flattened with the standard meaning (`.card { &:hover {…} .title {…} }` → `root .card:hover`, `root .card .title`; a nested `@media` is hoisted around the rule); `@media @supports @container @layer @scope` recurse; `@keyframes @property @page @counter-style` stay verbatim (name keyframes uniquely).
+- Output = scoped Tailwind CSS + scoped author CSS, total ≤ 64 KB.
+
+### 3.1 Scroll-driven animation (no script, so no script check)
+
+CSS scroll-driven animation (`animation-timeline: view()` / `animation-timeline: scroll()`, `animation-range`) is allowed — the lint has no opinion on it, same as any other `animation-*`/`@keyframes` property. This is real capability, not an accident to route around: a timeline progress bar, a parallax layer, or a scroll-triggered reveal can all be built in `<style>` alone, with zero JavaScript and therefore no script check.
+
+```css
+.wv-progress-line {
+  animation: wv-grow linear both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 45%;
+}
+@keyframes wv-grow-<variant> { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+```
+
+Always pair it with a `prefers-reduced-motion` fallback — the compiler does not enforce this, it is on you:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .wv-progress-line { animation: none; transform: scaleX(1); }
+}
+```
+
+Browser support is Chromium-only as of this writing (Safari/Firefox ignore `animation-timeline` and simply show the animation's end state, which is an acceptable fallback on its own — but the reduced-motion rule above is still required).
+
+## 4. JavaScript
+
+Exactly **one** `<script is:inline>` block (no `src`, no `define:vars`, `type` bare/`text/javascript`/`module`), ≤ 8 KB UTF-8. The compiler stores the raw body; the runtime wraps it:
+
+```js
+(function(fetch,XMLHttpRequest,WebSocket,EventSource,localStorage,sessionStorage,indexedDB,postMessage,open,importScripts,navigator,cookieStore,caches){"use strict";
+var root=document.querySelector('[data-wv-inst="<uid>"]');if(!root)return;
+/* your code */
+})();
+```
+
+**Every `<img>` whose src comes from a content field MUST carry `data-edit-image` with that field's path** (`data-edit-image="imageLeft"`; in a loop, `data-edit-image={\`items.\${i}.image\`}`) — without it the owner cannot swap the image inline. Lint `edit-image-missing` (fails `--strict`) enforces this.
+
+So: `root` is pre-declared (query inside it: `root.querySelector(...)`), strict mode is on, the 13 shadowed globals are `undefined` (`eval`/`Function` are blocked by lint instead — they are illegal as strict-mode parameter names), bare `return` is legal, and each instance on a page gets its own `root`. Scripts are re-executed when the editor swaps a section, so idempotent init is required (guard with a `data-*` flag on `root`).
+
+Rejected (all `error`):
+
+- Text heuristics: `\xNN`/`\uNNNN` escapes, `String.fromCharCode`/`fromCodePoint` (`script-obfuscation`); `with` (`script-with`); `import`/`export`/`import()`/`import.meta` (`script-import`); `debugger`; syntax errors (`script-syntax`).
+- Identifiers: `fetch XMLHttpRequest WebSocket EventSource eval Function importScripts localStorage sessionStorage indexedDB postMessage open navigator cookieStore globalThis self top parent opener frames caches ServiceWorker Worker SharedWorker Reflect Proxy Symbol WeakRef FinalizationRegistry crypto Notification Atomics SharedArrayBuffer Image Audio FontFace CSSStyleSheet Request DOMParser BroadcastChannel MessageChannel`; computed `window[...]`; `window`/`document` as a value (only `window.x`, `document.x`, a comparison, `"x" in window`, or a function argument such as `observe(document)` — never `Object.values(window)`, `var w = window`, `for (k in document)`).
+- Members: `.cookie .write .writeln .top .parent .opener .frames .postMessage .sendBeacon .__proto__ .constructor .prototype .location .history .execCommand .requestSubmit .submit .importNode .adoptNode .contentWindow .contentDocument .srcdoc .outerHTML .insertAdjacentHTML .createContextualFragment .referrer .domain .defineProperty .getOwnPropertyDescriptor .setPrototypeOf .getPrototypeOf .defaultView .ownerDocument .getRootNode .styleSheets .adoptedStyleSheets .sheet .insertRule .appendRule .replaceSync .attributeStyleMap .styleMap .attributes .getAttributeNode .setAttributeNode .createAttribute .setNamedItem .setHTMLUnsafe .setHTML .parseHTMLUnsafe .createHTMLDocument .parseFromString .getOwnPropertyNames .getOwnPropertyDescriptors .defineProperties`; computed access with a non-literal key on `window document globalThis self Object Array`; a computed key built from strings (`el["s" + "rc"]`, `` el[`${a}`] ``, `.join("")`, `String(…)`).
+- Assignments: `.innerHTML`/`.outerHTML` with a non-literal RHS, or a literal that loads something (`src=` `href=` `url(` `<img` `<video` … `on*=`) (`script-html`); `.src` `.href` `.action` `.srcset` `.poster` `.formAction`…; `.on*` handlers (use `addEventListener`); URL-bearing style properties in any spelling (`.style.backgroundImage`, `.style["background-image"]`, `mask`, `cursor`, `content`, `filter`, `clip-path`…), `.style.cssText`, `.style = …`; `x[k] = …` with a non-literal key unless `x` is the script's own object/array literal (`var counts = {}; counts[k] = 1` is fine).
+- Calls: `atob btoa unescape decodeURIComponent`; `setTimeout`/`setInterval` whose first argument is not visibly a function (an arrow/function expression, the name of a function declared in the script, or a `new Promise` resolver) — a string would be eval'd; `style.setProperty` with a non-literal name or a URL-bearing property; `Object.assign` onto anything but a fresh object/array (`Object.assign({}, a, b)`); `.assign(…)` other than `Object.assign`, one-argument `.replace(…)` (a Location's); `x[k](…)` with a non-literal key unless `x` is the script's own literal; `setAttribute`/`setProperty`/`createElement`/`insertAdjacentHTML` taken as a value instead of called; `createElement`/`createElementNS` of `script iframe object embed link meta base form frame style` or a non-literal tag; `setAttribute` of `on* src href srcdoc action formaction style xlink:href` or a non-literal name; `insertAdjacentHTML` with a non-literal; `location.assign/replace`; `requestFullscreen`; `showModal`; `new Function|Worker|SharedWorker|WebSocket|XMLHttpRequest|EventSource|Proxy|BroadcastChannel|MessageChannel`; tagged templates.
+- Clipboard (`script-clipboard`): any `.clipboardData`, and `addEventListener` for `copy` `cut` `paste` (and `before…`) — the way copied text (an account number, a WhatsApp number) gets swapped. A legitimate copy button would use `navigator.clipboard`, already refused; instead SELECT the text for the visitor (`document.createRange()` + `getSelection().addRange()`) so they copy it themselves.
+- Loops: `while(true)`/`for(;;)` without `break`/`return`/`throw` (`script-loop`).
+- URL parts (`script-url-part`): `a.host` `.hostname` `.protocol` `.port` `.username` `.password` and `window.name` — they redirect a link like `.href`. `a.search` / `.hash` / `.pathname` keep the host your markup declared and only warn (`script-url-query`): building a WhatsApp `?text=…` link is fine, reviewers check what goes in.
+- Runtime custom properties (`script-css-var-url`): `style.setProperty("--x", value)` with a runtime value is fine for layout, but `--x` must then not be read at the top level of a URL-loading declaration (`background`, `mask-image`, `cursor`, `content`, `filter`…), inside `url()`/`image-set()`, by another custom property, or by a utility class (`bg-(--x)`). Inside a function that cannot fetch it is fine: `width: var(--x)`, `clip-path: inset(0 var(--x))`, `mask-image: radial-gradient(at var(--x) 50%, …)`. A literal value with `url(`/`image(` is refused outright.
+
+Allowed and typical: `root.querySelector(All)`, `addEventListener`, `classList`, `dataset`, `getAttribute`/`setAttribute("aria-…")`, `IntersectionObserver`, `requestAnimationFrame`, `matchMedia`, `setTimeout(fn, ms)`, `Date`, `Math`, `JSON`, `textContent`, `style.transform`.
+
+Review rule — two gates, in order:
+
+1. **The machine gate**: the compiler and this lint. Any error and the variant cannot be saved.
+2. **An automatic security check**, only for a variant that has a **script** or a **hardcoded link to a host outside webto** (not one that comes from a content field). It either approves the variant or hands it to an admin; it never rejects on its own — rejecting is an admin's call, with a note to the seller.
+
+A variant with neither is approved as soon as it passes the machine gate. The seller sees only the STATUS (`pending` → `approved`, or `pending` until an admin decides), never the check's findings. Text addressed to a reviewer ("this code is safe", "please approve") does not help: it always sends the variant to an admin. A new version that changes the script or the link surface is checked again, and licensees keep the approved version meanwhile; markup/CSS-only versions go live when the lint passes. A **private** site variant (used only on its owner's site, never submitted) is checked in the background after it is saved; a script that is clearly harmful is switched off — the section still renders, only its interactivity stops — and the owner is emailed.
+
+What sends a script to an admin: reaching outside `root` to change, cover or rewrite other sections; interface outside `root` that the visitor cannot dismiss, that covers the page, or that shows claims not taken from the section's content (money, bank accounts, phone numbers, security, logins, orders); code that hides what it does. Your own interface outside `root` (a lightbox, a toast, a bar) is fine when the visitor can close or ignore it, it does not cover the page, and every word it shows comes from the section's fields or fixed labels.
+
+## 4a. GSAP (`data-uses`) — timelines, ScrollTrigger, pin/scrub
+
+The platform hosts **GSAP 3.15** (core + ScrollTrigger) and loads it **only for a variant that declares it** on its script tag:
+
+```astro
+<script is:inline data-uses="gsap scroll-trigger">
+  gsap.context(() => {
+    const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 } });
+    tl.from(root.querySelector("[data-h]"), { y: 40, opacity: 0 })
+      .from(root.querySelectorAll("[data-card]"), { y: 24, autoAlpha: 0, stagger: 0.08 }, "<0.2");
+
+    gsap.to(root.querySelector("[data-track]"), {
+      xPercent: -60, ease: "none",
+      scrollTrigger: { trigger: root, start: "top top", end: "+=1200", scrub: true, pin: true },
+    });
+  }, root);
+</script>
+```
+
+`data-uses` takes `gsap` and/or `scroll-trigger` (`scroll-trigger` implies `gsap`); anything else is `uses-unknown`. Other plugins (SplitText, Flip, Draggable…) are not available. `gsap` and `ScrollTrigger` are then in scope as plain names — never load GSAP yourself, never `gsap.registerPlugin` (the platform registers ScrollTrigger). Without the attribute, naming `gsap`/`ScrollTrigger` is `gsap-undeclared`. A page without a GSAP variant downloads nothing.
+
+**Use `data-wv-effect` first** (§5b). Reveal, fade, stagger, counter and soft parallax need no script, no review and no library. Reach for GSAP only for what the effect library cannot do: a sequenced hero timeline, scroll storytelling, pin + scrub, horizontal scroll sections, pointer-follow (`gsap.quickTo`).
+
+**Rules for authors**
+
+- Scope everything to the section: `gsap.context(() => { … }, root)`, and pass elements from `root.querySelector(All)` (or selector strings, which the context scopes to `root`). Two instances of the variant on one page must not touch each other.
+- Animate **from** the visible state: `gsap.from` / `gsap.fromTo`. Never hide content in CSS waiting for JS (`opacity: 0` in a class) — without JS, in the editor and in thumbnails the section must read complete.
+- Reduced motion, the editor and thumbnails are handled by the platform: when the visitor prefers reduced motion, inside the editor and during thumbnail capture, your script still runs (tabs, sliders and click handlers keep working), but everything GSAP built during init is reverted at once — the section shows its no-JS state, nothing pinned, no ScrollTrigger. Tweens you start later (on a click) still play. A `gsap.matchMedia()` with `(prefers-reduced-motion: no-preference)` is still good practice for responsive variants, but you do not need your own fallback.
+- Endless motion (`repeat: -1`, `gsap.ticker.add`) is reported to review as a loop: keep it light and decorative.
+
+**What the lint refuses** (GSAP sets properties, so its setters follow the same rules as `el.x = …`, §4):
+
+- vars that are not an **object literal written in place** — `gsap.to(el, vars)`, spreads `{ ...v }`, computed keys `{ [k]: v }`, getters (`gsap-vars`). Nested `defaults`, `keyframes`, `css`, `startAt`, `modifiers` must be literals too;
+- keys that write a URL, markup, an attribute or a page-level value: `attr`, `src`, `href`, `srcset`, `poster`, `action`, `innerHTML`, `outerHTML`, `text`, `style`, `cssText`, `name`, `search`, `hash`, `host`…, lowercase `on*` handlers, and every name §4 forbids (`location`, `cookie`, `fetch`…). GSAP callbacks (`onComplete`, `onUpdate`, ScrollTrigger's `onEnter`, `once`) are fine;
+- URL-capable style keys (`backgroundImage`, `background`, `mask`, `filter`, `clipPath`, `content`, `cursor`…) with anything but a fixed string without `url()`/`image()` — `clipPath: "inset(0 0 100% 0)"` and `filter: "blur(4px)"` are fine, a computed value is not; a runtime value in a custom property (`"--p": p`) follows the `script-css-var-url` rule;
+- `gsap.quickSetter` / `gsap.quickTo` with a non-literal property, an `attr:` prefix or one of the keys above (`gsap-quick-prop`);
+- `gsap` / `ScrollTrigger` stored, passed or destructured (`const g = gsap`, `const { set } = tl`), and `.to` / `.set` / `.from` … taken as a value or `.call`ed (`gsap-alias`);
+- `gsap.registerPlugin`, `registerEffect`, `effects`, `config`, `core`, `globalTimeline`, `exportRoot`, `gsap.ticker` beyond `add`/`remove`; `ScrollTrigger.config`, `scrollerProxy`, `normalizeScroll`, `killAll` (`gsap-forbidden`); underscore members and `.vars` (`gsap-internal`); a `scroller` that is not `root` or inside it (`gsap-scroller`);
+- in every script: `TweenMax`, `TweenLite`, `TimelineMax`, `TimelineLite`, `CSSPlugin`, `_gsap`, `__wvUse`.
+
+A GSAP variant has a script, so it goes through the automatic security check (Review rule above). GSAP by Webflow, used under its Standard License; it is never wired into the editor's animation controls.
+
+## 4b. Site chrome (navbar / banner / footer)
+
+Chrome types compile like any other variant, with two extra rules:
+
+- **The owner's page-navigation switches reach you ONLY through these props.** Page Settings > Navigation has "show in navbar" and "show in footer" per page; a navbar that builds its links from `links[]` alone, or a footer that never reads `footerPages`, ignores both switches and the owner has no way to tell why. Render `pages` in a navbar and `footerPages` in a footer, both as-is — the filtering is already done. `links[]` is for the EXTRA links a design wants (anchors, social, external), never a replacement for the site's own pages. Lints: `chrome-nav-pages-missing` / `chrome-footer-pages-missing` (warnings, `variant-check` 0.1.31).
+- **Context props are injected by the renderer, never edited by the owner.** Declare them in `interface Props` to read them; the compiler keeps them out of the editor schema: `pages?: Array<{ id: string; title: string; slug: string; parentId: string | null }>` (the site's nav pages, flat and in page order, filtered by the owner's per-page "show in navbar" switch — a one-page site gets `[]`; `parentId` marks a sub-page, see the next bullet), `currentSlug?: string` (for active-link styling), `linkPrefix?: string` (path prefix to PREPEND to every internal href: `url(linkPrefix + (p.slug ? "/" + p.slug : "/"))`; today it is always `""` for uploaded chrome — emit plain site-relative paths and NEVER build query strings yourself: preview/dev params (`?_subdomain`, `_pt`, ...) are re-attached to every link by a platform script), `colorMode?: "light"|"dark"|"system"`; footers additionally get `footerPages?: Array<{ title: string; slug: string }>` (only the pages the owner ticked for the footer; each item also carries `label`/`url`, the spelling the platform's own footers read) (photo/icon attribution is rendered by the PLATFORM in a strip below the footer — a footer variant never needs to render credits itself). `siteName` is an ORDINARY editable base field — the renderer merely injects a fallback that `content.siteName` overrides. Everything else you declare is ordinary content.
+- **Sub-pages (one level).** An owner can put a page under another (Page Settings > parent page; a bundle's `"parent": "<slug>"`). They reach you ONLY as `parentId` on the same flat `pages` list: `null` = top-level, otherwise the `id` of its parent, which is always a top-level item in the same list (the renderer already dropped a child whose parent is hidden from the navbar, and lifted one whose parent was deleted). Top level is `pages.filter((p) => !p.parentId)`; a page's children are `pages.filter((c) => c.parentId === p.id)` — two frontmatter consts, see `examples/navbar-dropdown.astro`. A navbar that reads only `title`/`slug` still works and shows sub-pages as ordinary links, which is exactly what lint `chrome-nav-subpages-flat` (warning, `variant-check` 0.1.39) tells you. Render them properly:
+  - **Desktop: a dropdown that opens on click and keyboard, not hover alone.** Keep the parent an ordinary link (it is a real page) and put a separate chevron `<button type="button" aria-expanded="false" aria-label="…">` beside it that toggles the list; Escape closes and returns focus to the button, a click outside closes. Hover-to-open may be added on top, never instead: a touch screen and a keyboard have no hover.
+  - **Mobile drawer: an accordion.** Same parent link + chevron button per parent; the children indent below it. Open the accordion of the parent whose child is the current page.
+  - **Active parent.** On a child's page (`currentSlug` = the child's slug), mark the parent active too — `p.slug === currentSlug || children.some((c) => c.slug === currentSlug)` — and put `aria-current="page"` on the child's own link.
+  - **Hooks by `data-*`, not `id`.** An `id` on your own elements fails `id-attr`; pair each button with its list through a data attribute (`data-sub-for` / `data-sub`), and write the script's state names so they avoid the shadowed globals (`open` is one: use `isOpen`). Children may have long titles — give the dropdown a fixed width (`w-64`) with wrapping text, never `whitespace-nowrap`.
+- **The root stays in normal flow — `position: fixed` is a compile error everywhere.** The platform positions the section WRAPPER: a `u:` navbar automatically gets wrapper-sticky "bar" mode (pinned solid bar). Do not try to stick or fix anything yourself; give the bar a real height and let the wrapper do the pinning. Mobile menus: a `<details>`/class-toggle drawer via the script (remember `aria-hidden` on the closed state so the overlay never traps clicks).
+
+- **Render the owner's logo.** `logoUrl`, `logoUrlDark` and `showSiteNameWithLogo` are base fields the owner sets in Site settings. A navbar that never reads them not only drops the branding, it HIDES those fields from the owner's editor (an unread base field is a hidden field), so nothing signals the loss. Lint `chrome-logo-missing` warns about it; `schema.md` has the full pattern, including why forced dark mode needs `colorMode` while `system` uses `dark:`.
+- **Mark the brand element `data-site-name`** so the owner's site-name size setting applies.
+
+A navbar renders on EVERY page of a buyer's site — review is strict about it; test with 1 page (empty `pages`), many pages, long titles, and a parent with sub-pages (the `--out` preview of a navbar already uses one: "Layanan" with two long-titled children).
+
+## 4c. DB-driven sections (products / blog)
+
+`products` and `blog` sections have two data modes the OWNER picks (`source: "manual" | "database"`); a variant sees no difference — it always renders the same base fields:
+
+- `products?: Array<{ title: string; price: string; image?: string; description?: string; url?: string; category?: string }>` — `price` arrives PRE-FORMATTED ("Rp 150.000" or a range); render it verbatim, never parse or re-format it.
+- `posts?: Array<{ title: string; excerpt: string; image?: string; date?: string; author?: string; url?: string }>`.
+
+In manual mode the owner edits the list in the editor; in database mode the platform fills the array from the site's real products/posts before render (same shape). Rules: handle the EMPTY list (a fresh database mode has no rows yet — render the heading, not a broken grid); `url` is optional (no link → no `<a>`); `source` stays visible in the editor automatically (the compiler never hides it, even when your variant does not read it) - it is how the owner switches modes; pagination is rendered by the page OUTSIDE your section — ignore it.
+
+### Blog in database mode: the extra keys the platform fills
+
+Only in `source: "database"` does the platform add these to what a `blog` variant receives. Declare the ones you read in `interface Props`, optional. None is an editor field, none needs a doc comment, none counts as an extension field (variant-check ≥ 0.1.56; before that they lint as unknown item keys):
+
+- Per card, in `posts[]`: `category?: string` (label), `categoryUrl?: string` (the category archive, `""` when the post has no category), `publishedAt?: string` (ISO instant, `""` if unknown). `date` is still the pre-formatted long date in the site language.
+- Per section: `categoryName?: string` and `archiveUrl?: string` — set only when the section has a `category` filter (`archiveUrl` is that category's archive; use it for a "Lihat semua" link and skip the link when it is absent); `pagination?` is the page-switcher payload and the platform draws it OUTSIDE your section — do not render it.
+
+In manual mode none of them exist (`category` is hand-typed, the rest are undefined), so every use must be guarded: `{p.categoryUrl ? <a href={p.categoryUrl}>…</a> : <span>…</span>}`.
+
+**Relative time ("2 jam lalu").** `date` is a fixed string. For a news feel, print `<time datetime={p.publishedAt}>{p.date}</time>` and, only if you want the relative form, rewrite the text from `datetime` in a small `<script>` with `Intl.RelativeTimeFormat` (document language, fall back to `date` past one week or without `datetime`). The text must work without the script, and the usual script rules and review apply. Never compute the label from `publishedAt` in the frontmatter (it would freeze at render time in the cache).
+
+**Empty and sparse feeds.** A database blog can have 0 posts, 1 post, posts without `image`, posts without `category`. Print a one-sentence empty state in the site language (via `t()` or a content field), never an empty frame. The Generation Lab renders your variant over 0 / 1 / 12 posts, with and without image and category, and sends a throw back for repair; do the same by hand.
+
+## 4d. Product page layout (`product-detail`)
+
+A `product-detail` variant is not a page section: it is the layout of every `/product/<slug>` page of a site, the place where the platform's Classic / Landing / Minimal layouts sit. The owner picks it in Produk › Tata Letak (as the site default, or for one product); a template bundle carries one through `productLayout` in `template.json` (template skill `manifest.md`). It can also be sold on its own as a variant listing. It can never be placed on a page (the editor and the upload refuse it).
+
+**The platform keeps the selling part.** Price, variant choice, stock, the buy / WhatsApp button and the purchase pixel are rendered by the platform, through four blocks you place where your design wants them:
+
+| Macro | Renders | Props (style only) |
+|---|---|---|
+| `<ProductBuyBox />` | price, variant buttons, stock note, bundle contents, the buy/WhatsApp button, the add-to-cart button (when `view.cart.enabled`), AddToCart pixel | `class`, `showPrice` (false = you print `view.priceLabel` yourself), `compact` (centered pill buttons) |
+| `<ProductGallery />` | main photo + thumbnails, switching with the chosen variant | `class`, `aspect="square|wide"`, `thumbs` |
+| `<ProductDescription />` | the product description (the owner's markdown) | `class`, `size="base|lg"` |
+| `<ProductCurriculum />` | event/webinar schedule and venue, course curriculum (renders nothing for other products) | `class` |
+| `<ProductAttributes />` | the seller's attribute groups (`view.attributes`): a table when items have labels, a list when they do not; nothing when the product has none | `class`, `group="<name>"` (only that group; absent = every group) |
+
+Import them like the other macros (`import { ProductBuyBox, ProductGallery } from "webto/variant"`). Rules, all checked by the compiler:
+
+- `<ProductBuyBox />` is **required** (`product-buybox-missing`, error): a product page that cannot sell is not a layout.
+- `<ProductBuyBox />` and `<ProductGallery />` at most **once** each (`product-block-multiple`, error) — the page script finds them by a unique selector. Inside a `.map()` only the first renders.
+- The product macros are valid only in a `product-detail` variant (`product-block-type`, error).
+- The page needs an `<h1>` — normally `<h1>{view.name}</h1>` (`product-h1-missing`, warning).
+- `data-pd-add` only on a `<button>` (`product-cart-not-button`, error), and only inside a `view.cart.enabled` condition (`product-cart-unguarded`, warning; error under `--strict`) — ≥ 0.1.50, see the cart paragraph below.
+
+**Data you read: three injected props.** Declare them in `interface Props` to read them; like chrome's `pages`, they never become editor fields:
+
+```ts
+product?: { id: string; name: string; slug: string; category: string | null; kind: string; type: string };
+view?: {
+  name: string; category: string | null; kind: string;      // kind: physical | digital | course | webinar | event | ...
+  priceLabel: string;                                         // pre-formatted ("Rp189.000" or a range) — print verbatim
+  soldOut: boolean; lowStockCount: number | null;
+  images: string[];
+  variants: Array<{ id: string; name: string; priceLabel: string; inStock: boolean; low: boolean;
+    optionValues: Record<string, string> | null }>;          // { Warna: "Hitam", Ukuran: "M" } on a combination, else null
+  options: Array<{ name: string; values: Array<{ label: string; available: boolean }> }>;  // [] without options
+  bundleComponents: Array<{ name: string; priceLabel: string }>; bundleSumLabel: string | null;
+  schedule: { rangeLabel: string; address: string | null; locationUrl: string | null; online: boolean; past: boolean } | null;
+  curriculum: Array<{ title: string; lessonCount: number }>; totalLessons: number; totalDurationLabel: string;
+  checkoutHref: string; waHref: string | null;
+  canCheckout: boolean;                                       // false = checkout would refuse the order (physical: shipping not ready or no way to pay; or orderVia "whatsapp")
+  orderVia: "checkout" | "whatsapp";                          // "whatsapp" = order by chat only, no checkout or cart; physical products only (≥ 0.1.54)
+  cart: { enabled: boolean; addLabel: string };               // shopping cart; enabled false = no add-to-cart button (≥ 0.1.50)
+  kindInfo: KindInfo;                                         // per-kind facts, table below
+  attributes: Array<{ name: string; items: Array<{ label: string; value: string }> }>;  // seller's groups; [] when none
+};
+linkPrefix?: string;   // always "" — emit plain paths
+```
+
+**`view.options` — decoration only.** A product with options (Warna × Ukuran, at most 3 options × 20 values, 100 combinations) lists them here; `available` is false when no active, in-stock combination uses that value. Use it to SAY something about the choice — "Tersedia dalam {view.options[0].values.length} warna", colour dots in a hero, "Ukuran L habis". Choosing a combination, its price, stock and photo are `<ProductBuyBox />`'s job (its own option pills drive the page script): never build a picker yourself, it would not reach the checkout.
+
+**`view.kindInfo` — what each kind of product adds.** Always present; switch on `kindInfo.kind` (it equals `view.kind`). Labels are formatted for the site's language; a `null` means the seller left it empty.
+
+| `kind` | fields |
+|---|---|
+| `physical` | `weightGram: number \| null` |
+| `digital` | — |
+| `course` | `cohortStartLabel`, `enrollUntilLabel` (string \| null), `freeEnroll: boolean`, `totalLessons: number`, `totalDurationLabel: string` |
+| `webinar` | `scheduleLabel: string \| null`, `past: boolean` — never the meeting link (it reaches the buyer in the ticket email only) |
+| `event` | `scheduleLabel`, `address`, `mapUrl` (string \| null), `past: boolean` |
+| `donation` | `targetIdr`/`targetLabel`, `raisedIdr`/`raisedLabel`, `percent` (0–100, capped; all `null` without a target or when the seller hides the amount raised), `minLabel: string`, `presets: string[]` (formatted amounts), `allowCustom: boolean` |
+
+A donation progress bar, for instance:
+
+```astro
+{view.kindInfo.kind === "donation" && view.kindInfo.percent !== null && (
+  <div class="mt-6">
+    <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div class="h-full bg-primary" style={`width: ${view.kindInfo.percent}%`}></div>
+    </div>
+    <p class="mt-2 text-sm text-muted-foreground">{view.kindInfo.raisedLabel} / {view.kindInfo.targetLabel}</p>
+  </div>
+)}
+```
+
+Render the raised amount only from `kindInfo` — it is `null` exactly when the seller chose to hide it. `view.attributes` is there to read a single value for decoration (a "100% katun" badge); for the full table use `<ProductAttributes />`, which keeps the platform's layout and multi-line handling.
+
+`view` is for decoration around the blocks (a category eyebrow, a "Terjual habis" ribbon, a lessons count). Do not rebuild what a block renders: a price you print yourself does not follow the chosen variant. To repeat the buy button elsewhere (a sticky bar, a closing band), write `<a data-pd-cta href={url(view.checkoutHref)}>…</a>` (and `data-pd-wa` with `view.waHref`); a price mirror is `<span data-pd-price>{view.priceLabel}</span>`. The platform script keeps every one of them in step with the chosen variant.
+
+**Every `data-pd-cta` you draw yourself MUST be guarded by `view.canCheckout`** (≥ 0.1.49). It is `true` for a digital product, and for a physical one only once the seller's shipping is set up AND the store can take the payment (an active payment account, or COD the product allows — `view.orderVia` stays `"checkout"` then: it is the store's state, not the seller's choice); while it is `false` checkout refuses the order, so an unguarded button sends the buyer to an error. `<ProductBuyBox />` already does this — fall back the same way: `data-pd-wa` when `view.waHref` is set, else no button. In showcase (template and marketplace previews) `canCheckout` keeps its real value and `checkoutHref` is `"#"`, and the sample product in the preview has `canCheckout: true`.
+
+```astro
+{!view.soldOut && (view.canCheckout || view.waHref) && (
+  view.canCheckout
+    ? <a data-pd-cta href={url(view.checkoutHref)} class="…">{stickyCta}</a>
+    : <a data-pd-wa href={url(view.waHref)} target="_blank" rel="noopener" class="…">{stickyWa}</a>
+)}
+```
+
+**Order via WhatsApp only: `view.orderVia`** (≥ 0.1.54). A seller can mark a **physical** product `"whatsapp"`: they take its orders by chat (a rental, a negotiated service, B2B with a "mulai dari" price). Every other kind (digital, course, webinar, event, donation) is delivered by the platform after payment, so its `view.orderVia` is always `"checkout"` — a layout never needs a WhatsApp-only branch for a ticket, a file or a donation. Then `view.canCheckout` and `view.cart.enabled` are `false`, checkout and the cart refuse the product server-side, and `<ProductBuyBox />` draws only the WhatsApp button (or no button without a number), so the guard above already does the right thing. `view.orderVia` matters in **showcase** (template and marketplace previews: `checkoutHref` is `"#"` and `waHref` is `null`): there the platform draws a disabled WhatsApp button for such a product instead of a pay button, and a button you draw yourself should match:
+
+```astro
+{!view.soldOut && view.checkoutHref === "#" && view.orderVia === "whatsapp" && (
+  <span data-pd-wa data-pd-showcase aria-disabled="true" class="… opacity-60 cursor-not-allowed">WhatsApp</span>
+)}
+```
+
+`data-pd-wa data-pd-showcase` (≥ 0.1.55) is the platform's own showcase marker: your CSS for `[data-pd-wa]` styles it like the live button, and the page script skips anything with `data-pd-showcase` (no link, no pixel).
+
+Read the flag; NEVER guess it from the copy (a price "mulai dari", the word "sewa", a "hubungi kami" line). The sample product in the `variant-check` preview has `orderVia: "checkout"`. A template sets it per product with `sampleProducts[].orderVia` (template skill `manifest.md`).
+
+**Add to cart: `view.cart` + `data-pd-add`** (≥ 0.1.50). `<ProductBuyBox />` already draws the cart button beside its buy button, so a layout that only places the buy box needs nothing. To draw one more (a sticky bar, a closing band), write `<button type="button" data-pd-add>` and guard it with `view.cart.enabled`:
+
+```astro
+{view.cart.enabled && !view.soldOut && (
+  <button type="button" data-pd-add class="…">{view.cart.addLabel}</button>
+)}
+```
+
+- `view.cart.enabled` is `true` only when the store's cart is on (the seller's shipping is ready and the cart is not switched off), the product ships (`physical`, not a bundle), and the page is not a showcase (template, marketplace snapshot, sample product). It says nothing about stock — pair it with `view.soldOut`, as for the buy button. Unguarded, the button shows on stores without a cart, where the page script never wires it: a dead button (`product-cart-unguarded`).
+- `view.cart.addLabel` is the platform's label in the site's language ("+ Keranjang" / "+ Cart"). Print it; do not hardcode your own.
+- A click adds **the combination currently chosen in `<ProductBuyBox />`**, quantity 1, then shows the platform toast and updates the floating cart icon. You may draw several `data-pd-add` buttons, like `data-pd-cta`. An icon or a label inside the button is fine; another element (`<a>`, `<div>`) is refused (`product-cart-not-button`).
+- Never draw a cart icon, a cart drawer or a cart link in the navbar: the platform injects those on every page.
+- Older sites send no cart yet: there `view.cart` is `{ enabled: false, addLabel: "" }`. The `variant-check` preview pretends a ready shop so you can see the button: its sample product has `{ enabled: true, addLabel: "+ Keranjang" }` (physical only). The real template and marketplace previews do not.
+
+**Styling the buy box and the gallery** (≥ 0.1.55). The blocks are platform markup, but how they look is up to you. Every default style sits in the cascade layer `wvf-product`, and every page declares it BEFORE your variant's layer (`@layer wvf-product, wvf;`). So plain CSS in your `<style>` wins. You need no `!important` and no guessing at internal markup. Nothing in the buy box is styled inline. There are two ways in:
+
+1. **Tokens.** Set them on the class you pass to the block (`<ProductBuyBox class="tr-buy" />`) or on any ancestor. They are read only inside the buy box root `[data-pd-buybox]` and the gallery, so buttons you draw yourself are not affected. An unset token keeps the platform look exactly.
+
+   | Token | Default | Applies to |
+   |---|---|---|
+   | `--pd-btn-radius` | `var(--radius)` (showcase button: `var(--radius) + 4px`) | every action button |
+   | `--pd-btn-border-width` / `--pd-btn-border-color` | `0` on solid buttons, `2px` on outline ones / per button | every action button |
+   | `--pd-btn-weight` / `--pd-btn-case` / `--pd-btn-tracking` | `700` / inherited (`none` on the cart button) / inherited | every action button |
+   | `--pd-btn-width` | `auto` (`100%` = column-wide buttons, stacked) | every action button |
+   | `--pd-buy-bg` / `--pd-buy-fg` | `var(--color-primary)` / `var(--color-primary-foreground)` | pay button (and its showcase twin) |
+   | `--pd-cart-bg` / `--pd-cart-fg` / `--pd-cart-border` | `transparent` / `var(--color-primary-text)` / `var(--color-primary)` | add-to-cart (outline) |
+   | `--pd-wa-bg` / `--pd-wa-fg` | `#25D366` / `#fff` | WhatsApp when it is the main button; beside the pay button it is an outline in `--pd-wa-bg` |
+   | `--pd-opt-radius` / `--pd-opt-border` / `--pd-opt-bg` / `--pd-opt-fg` | pill `9999px` (list rows: `var(--radius)`) / foreground 12% / `transparent` / inherited | option and variant buttons |
+   | `--pd-opt-active-bg` / `--pd-opt-active-fg` / `--pd-opt-active-border` | `--pd-opt-bg` / `--pd-opt-fg` / `var(--color-primary)` (plus a 1px ring) | the chosen one (`aria-checked="true"`) |
+   | `--pd-opt-case` / `--pd-opt-weight` | `none` / inherited | option and variant buttons |
+   | `--pd-media-radius` | `1rem` | gallery main photo |
+   | `--pd-thumb-radius` / `--pd-thumb-active-border` | `var(--radius)` / `var(--color-primary)` | gallery thumbnails |
+
+   There are no tokens for touch-target size, labels, visibility or colour swatches. Those stay with the platform.
+
+2. **Selectors (the contract).** These are stable. Style them under your own class (`.tr-buy [data-pd-wa]`):
+
+   | Selector | Element |
+   |---|---|
+   | `[data-pd-buybox]` | the buy box root |
+   | `[data-pd-cta]` | pay button (an `<a>`; in showcase a `<span>`) |
+   | `[data-pd-wa]` | WhatsApp button (an `<a>`; in showcase a `<span>`) |
+   | `[data-pd-add]` | add-to-cart `<button>` |
+   | `[data-pd-showcase]` | added to the showcase twin of `data-pd-cta` / `data-pd-wa` (template and marketplace previews); it always has `aria-disabled="true"` and never a link |
+   | `[data-pd-opt]` + `[data-pd-val]` | option buttons (Warna × Ukuran) |
+   | `[data-pd-variant]` | variant buttons of a product without options |
+   | `[aria-checked="true"]` | the chosen option / variant |
+   | `[aria-disabled="true"]` | an option value with no working combination for the other picks (still clickable) |
+   | `:disabled` | an option value / variant that cannot be bought at all |
+   | `[data-pd-price]` | the price (and your own price mirrors) |
+   | `[data-pd-stock]` | the "Tersisa n" note of the chosen combination |
+   | `[data-pd-main]`, `[data-pd-thumb]` + `[aria-current="true"]` | gallery main photo, thumbnails, the current thumbnail |
+
+   Classes inside the blocks (`wvpd-*`) are internal and can change. Do not target them. There is no `data-pd-part`.
+
+The Trak Rent "steel plate" look (square corners, a 2px foreground border, upper-case, column-wide buttons):
+
+```astro
+<ProductBuyBox class="tr-buy mt-6" />
+
+<style>
+  .tr-buy {
+    --pd-btn-radius: 0;
+    --pd-btn-border-width: 2px;
+    --pd-btn-border-color: var(--foreground);
+    --pd-btn-case: uppercase;
+    --pd-btn-tracking: 0.04em;
+    --pd-btn-width: 100%;
+    --pd-buy-bg: var(--foreground);
+    --pd-buy-fg: var(--background);
+    --pd-opt-radius: 0;
+    --pd-opt-border: color-mix(in srgb, var(--foreground) 25%, transparent);
+    --pd-opt-case: uppercase;
+    --pd-opt-weight: 700;
+    --pd-opt-active-bg: var(--primary);
+    --pd-opt-active-fg: var(--primary-foreground);
+    --pd-opt-active-border: var(--foreground);
+  }
+  .tr-buy [data-pd-opt][aria-checked="true"] { box-shadow: none; }
+</style>
+```
+
+For text in the brand colour on the page background, use `text-primary-text` / `var(--primary-text)` (≥ 0.1.55). It is the primary, darkened or lightened until it reads at 4.5:1 there. Raw `text-primary` is for fills and decoration. A pale primary (a yellow `#f2c230` on white) used raw as a label is what makes a "+ Keranjang" disappear.
+
+**Restyle, never hide.** Two rules check the above:
+
+- `product-part-hidden` (**error** for a new upload; a warning when a stored variant is recompiled) catches CSS that hides, disables or empties the pay / WhatsApp / cart button, the buy box root, or the element you wrap it in.
+  - **Where it looks.** Any selector whose last part names `data-pd-cta|wa|add|buybox`, behind any class and inside `@media` / `@supports`. Also the class you pass to `<ProductBuyBox>` and the classes of every element around it.
+  - **Flagged properties.** `display:none`, `visibility:hidden|collapse`, `opacity` below 0.3, `pointer-events:none`, `content`, a zero `width` / `height` / `max-*` / `font-size`, `clip` / `clip-path`, `scale(0)`, an off-screen offset (≥ 999px, 60rem or 100vw/vh in `left` / `top` / `margin` / `text-indent` / `translate`), and `color: transparent`.
+  - **Flagged tokens.** `--pd-X-fg` equal to `--pd-X-bg`, a transparent `--pd-X-fg`, and `--pd-btn-width: 0`.
+  - **Flagged utilities.** Unconditional hiding utilities (`hidden`, `invisible`, `opacity-0`…`25`, `sr-only`, `pointer-events-none`) on the buy box or an ancestor. A class list that shows it again at a breakpoint passes (`hidden md:block`).
+  - **Not flagged.** `:hover` dimming at 0.3 or above (`hover:opacity-90` is fine), anything under `:disabled`, `[aria-disabled]` or `[data-pd-showcase]`, and `::before` / `::after` decoration such as an icon.
+  - **Limits: this is static analysis.** It does not see values built from your own custom properties (`display: var(--x)`), classes added by your script, another element laid over the button, a `::before` / `::after` that covers it, selectors that reach the buy box only by tag or position (`section > div:nth-child(2)`), or class expressions (`class={cond ? "hidden" : ""}`). Passing the lint is not permission: hiding the buy button any other way is still a review rejection.
+- `product-part-contrast` (warning) checks every `--pd-X-fg` / `--pd-X-bg` pair you set, for `buy`, `cart`, `wa`, `opt` and `opt-active`. Setting either half is enough; the other half takes its default.
+  - It measures on the bundle's `theme.colors` and `theme.darkColors` (the demo palettes when there is no theme) and warns below 4.5:1.
+  - It resolves hex values, `white` / `black`, `transparent` (taken as the page background), the theme tokens (`var(--primary)`, `var(--color-primary-text)`, …) and `color-mix(in srgb, …)` of those. Anything else is skipped, not guessed.
+  - A theme's own pair (`--primary` + `--primary-foreground`, `--background` + `--foreground`, …) is not reported, because its contrast belongs to the theme.
+
+**Your own fields are static text.** Everything else in `Props` is a field the owner edits in the Tata Letak dialog: a badge, section titles, a guarantee line. Strings (and booleans/enums/numbers, or a list of strings) only — the dialog has no image upload or list-of-objects editor (`product-detail-field-nontext`, warning). There is no inline editing on product pages, so `data-edit-field` is optional here. Document each field (`/** … @example … */`) as usual.
+
+**Preview.** `variant-check --type product-detail --out preview.html` (add `--product-kind donation|course|webinar|event|digital` to preview a layout built on `kindInfo`, ≥ 0.1.46) renders the variant around the platform's sample product ("Tas Kanvas Serbaguna", three photos, options Warna × Ukuran with the Krem / L combination sold out) plus two attribute groups ("Spesifikasi" as a table, "Komposisi" as a list). Since 0.1.55 `<ProductBuyBox />` and `<ProductGallery />` in the preview are the platform's own markup and styles, not stand-ins, so buy-box CSS can be judged locally. By default the preview shows a ready shop (pay + cart, no WhatsApp). Pick the branch to check with `--order-via whatsapp` (one WhatsApp button), `--can-checkout false` (shipping not ready: WhatsApp instead of pay), `--no-cart`, and `--showcase` (the disabled template-preview button; combine with `--order-via whatsapp`). The variant's marketplace preview shows the same sample product with the same blocks. A TEMPLATE's preview uses the template's own sample products when its `template.json` declares `sampleProducts` (template skill `manifest.md`) — their `/product/<slug>` pages, in their own kinds, photos, options and attributes — while `/product/contoh` keeps serving the platform sample as the fallback. So a layout must hold up on the seller's real data, not just the bag: a product without options or attributes, one photo, a long name. See `examples/product-detail-split.astro`, and `examples/product-detail-donation.astro` for a layout built on `kindInfo`.
+
+## 5b. Platform effect library (data-wv-effect)
+
+Declarative motion WITHOUT writing a script (so no script check): mark elements and the platform's audited runtime animates them on the live site. Use it first; GSAP (§4a) is for the timelines, pinning and scrubbing these effects cannot do.
+
+```astro
+<div data-wv-effect="reveal-up" data-wv-delay="1">...</div>
+<ul data-wv-effect="stagger" data-wv-delay="1">...</ul>
+<span data-wv-effect="counter" data-wv-duration="1500">128</span>
+```
+
+Effects (closed enum — anything else is lint error `effect-unknown`): `reveal-up` / `reveal-down` / `reveal-left` / `reveal-right` (fade + 22px slide in the named FROM-direction, once, on viewport entry), `fade`, `stagger` (direct children reveal sequentially; `data-wv-delay` = step between children), `counter` (first number in the text counts up when visible), `parallax-soft` (gentle translateY scrub; `data-wv-strength="soft"|"medium"`), `zoom-hover` (images inside scale 1.03 on hover — give the container `overflow-hidden`).
+
+Params: `data-wv-delay` = whole steps of 100ms, 0-10; `data-wv-duration` = ms, 100-5000. Rules the platform enforces so you don't have to: `prefers-reduced-motion` disables everything centrally (never write your own fallback), elements are only hidden after the runtime loads (no-JS/crawlers/thumbnails always see content), effects are OFF inside the editor, and sections swapped in AFTER page load (variant chips, apply, DB pagination) are rescanned automatically — never write your own IntersectionObserver for these effects. Don't put an effect on a `data-edit-field` element (warning `effect-on-editable`) — wrap it instead. `variant-check --out` previews include the runtime, so test the motion locally.
+
+## 5. Macros and helpers
+
+- `<Container class?>` → `<div class="mx-auto w-full px-6 …" style="max-width: var(--site-max-width, 72rem);">`.
+- `<Button href? variant="default|outline|ghost" size="sm|default|lg" class?>` → `<a … data-track="cta">` when `href`, else `<button type="button">`. Base classes: `inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2`; `default` = `bg-primary text-primary-foreground hover:opacity-90 shadow-sm`, `outline` = `border border-border text-foreground hover:bg-muted`, `ghost` = `text-foreground hover:bg-muted`; sizes `px-4 py-2 text-sm` / `px-6 py-3 text-base` / `px-8 py-4 text-lg`.
+- `<EditUrlPill field="ctaUrl" value={ctaUrl} anchor="below|above|right|left" />` → hidden pill the editor reveals; its `<a>` ancestor needs `class="relative"`.
+- `<ViewMoreLink url={viewMoreUrl} text={viewMoreText} style="outline|link|solid" align="left|center|right" />` → renders nothing when `url` is empty; emits an editable label + pill + `data-track="cta"`.
+- `<AddImageButton path={`images.${images.length}.url`} visible={images.length < 20} label? mode="inline|floating" />` → the editor's "Tambah Gambar" pill for an image list; renders nothing on the live site. Put it at the list's bottom seam (after the grid, before `<ViewMoreLink>`); `path` is the **next** index of the list, `visible` gates on the list's max. `floating` pins it bottom-right of a full-bleed section, which then needs `class="relative"`. Every list of pictures with `data-edit-image` items should have one — a gallery without it has no way to add a photo in the editor (the platform appends a fallback pill at the section's end when a variant has none, but that placement is a guess).
+- `<FormFields class? fieldClass? labelClass? submitClass? wrapClass? successClass? />` → the platform's whole form block (§5c), for `form` sections only.
+- `<ProductBuyBox />` `<ProductGallery />` `<ProductDescription />` `<ProductCurriculum />` `<ProductAttributes group? />` → the platform's product blocks (§4d), for `product-detail` variants only.
+- `t(key)` → localized fixed UI label (30 languages) — for chrome words only, never for content. **`key` is a CLOSED enum of platform term keys, never display text** — `t("Alamat")` is wrong (lint `t-unknown`, fails --strict; it used to crash the section at render, and the preview's identity `t` will not catch it for you). The ones sections typically need: `address` `email` `phone` `hours` `operatingHours` `today` `closed` `menu` `readMore` `contactUs` `price` `all` `close` `noResults` `openInMaps` `locationLabel` `customerReviews` `specialOffer` `freeLabel` `soldOut` `days` `minutes` `seconds` `minRead` `nextPage` `prevPage` `download` `questions` (the CLI validates the full list). A visible label with no matching term key is NOT a t() call — make it an optional content field with a default (`socialHeading = "Sosial"` + `data-edit-field`).
+- `img(url, width = 960)` → sanitizes and sizes Unsplash/Pexels URLs (`w=`), passes other hosts through, returns `undefined` for empty input (attribute omitted). Use 480 for thumbnails, 960 for split images, 1600 for full-bleed backgrounds.
+- `url(u)` → sanitizer (`javascript:` etc. → `#`); empty → `#`.
+- `video(videoUrl)` → `{ kind, src, poster }` for the polymorphic video field (§2.7). `kind` is `"file"` (an uploaded `.mp4`/`.webm` — play it inline), `"embed"` (a recognized YouTube/Vimeo link — poster + link out; a variant may never embed it) or `""` (empty or unrecognized — render nothing rather than a broken player). `src` is sanitized, and for an embed it is the **watch** URL, never a player URL. `poster` is a free YouTube still frame, `""` for Vimeo and files — so write `v.poster || img(posterImage, 1600)` and keep your own poster field as the fallback. You cannot write this yourself: matching the extension needs a regex literal and reading the YouTube id needs `new URL`, and neither is in the expression subset (§1.4).
+- `editChrome` → `true` inside the editor (only for editing affordances, never content).
+
+### 5c. `<FormFields />` — a form section that follows your design
+
+Forms used to be the one section a template could not restyle: `form input select textarea` are banned (§2.1) and always will be, because submission, the honeypot, Turnstile, WhatsApp routing, the checkout hand-off and the visitor's personal data are the platform's responsibility. So a converted template's contact form stayed on one of ten platform looks while every other section followed the design. `<FormFields />` is the same trust shape as `video()`, `data-lightbox` and power words: **the platform writes the risky part once; the variant writes the layout around it.**
+
+```astro
+---
+import { Container, FormFields } from "webto/variant";
+
+interface Props {
+  /** Section heading, two lines at most. @example Ceritakan proyek Anda */
+  heading?: string;
+  fields?: Array<{ name: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[] }>;
+  submitText?: string;
+  submitMode?: string;
+  whatsappNumber?: string;
+  successMessage?: string;
+}
+const { heading = "Ceritakan proyek Anda", fields = [], submitText = "Kirim", submitMode = "inbox", whatsappNumber = "", successMessage = "Terima kasih!" } = Astro.props;
+---
+<section class="relative isolate overflow-hidden bg-background py-20 text-foreground">
+  <span aria-hidden="true" class="absolute inset-x-0 top-1/2 -z-10 h-[50%] border-t-2 border-foreground bg-primary/15"></span>
+  <Container>
+    <div class="mx-auto max-w-3xl rounded-lg border-2 border-foreground bg-background p-10">
+      <h2 class="!text-4xl font-black"><span data-edit-field="heading">{heading}</span></h2>
+      <FormFields
+        fieldClass="w-full border-0 border-b-2 border-foreground bg-transparent px-0 py-3 focus:outline-none focus:border-primary"
+        labelClass="mb-1 block text-xs font-bold uppercase tracking-widest"
+        submitClass="mt-4 inline-flex rounded-lg border-2 border-foreground bg-primary px-6 py-3 font-bold text-primary-foreground shadow-[4px_4px_0_0_var(--foreground)]"
+      />
+    </div>
+  </Container>
+</section>
+```
+
+**What it renders.** `<form data-form-section>` with the section's `fields` (text/email/tel/number/textarea/select/product and the Indonesian address group, each with the same `type`, `autocomplete`, `data-wilayah` and quantity bounds the platform's own forms use), the `_hp` honeypot, the hidden `_form` name, the bump checkbox when enabled, the `[data-turnstile]` slot, the submit button (`data-edit-field="submitText"`), the error line (`t("formError")`), and the `[data-success]` block after the form. The site's ONE submit runtime binds it exactly like a platform form: inbox, WhatsApp, WhatsApp+Order and Send&Checkout all work, Turnstile is verified, leads are tracked. Your variant carries **no script** for any of this, so it never enters script review.
+
+**Where the content comes from.** Every form base key — `fields submitText submitMode whatsappNumber whatsappGreeting formName bumpEnabled bumpLabel bumpPrice bumpDescription successRedirectUrl successMessage submitColor submitTextColor` — is read in this order: an explicit prop on the macro, else your destructured local of the same key (so its default applies), else the section's raw content. Using the macro marks all of them as USED, so none of them disappear from the editor — the owner keeps the full fields/submit/WhatsApp/bump UI, because the section type is still `form`. Do declare `fields` in `Props` (lint `form-fields-no-fields` warns if you don't).
+
+**What you style.** Six class props, all static Tailwind strings (picked up at upload like any class): `class` (the `<form>`), `fieldClass` (every input/textarea/select), `labelClass`, `submitClass`, `wrapClass` (per-field wrapper), `successClass`. They replace the defaults wholesale; `fieldClass` gets ` resize-y` appended on textareas. A submit colour the owner picked in the editor still wins as an inline style, as it does on platform forms.
+
+**Limits, stated plainly.**
+- `form` sections only — anywhere else is `error` `form-fields-type`.
+- `select` and multi-option `product` fields render the **platform's own dropdown** (invisible native `<select>` for value/validation + a styled trigger and listbox); `fieldClass` goes on the trigger, so it matches your inputs. Its stylesheet and runtime are loaded once by the site layout and by every preview — from `variant-check` 0.1.25 / compiler 0.1.17. A single-option `product` renders the product card with a hidden ref, exactly like the platform.
+- No multi-step, no sidebar-info blocks — those are layouts, and layout is now yours to build around the macro.
+- The marketplace preview and `--out` render the block with the dropdown working, but carry no SUBMIT runtime; submit is swallowed there. That is expected.
+
+## 6. Tailwind at upload
+
+Tailwind v4 is compiled at upload from the class strings found in your file (static attributes, string/template literals, const initializers, prop defaults). Classes must be **literal** — never assembled from content values. Available: the full default utility set (spacing, flex/grid, typography, palette, breakpoints, `hover:`/`focus:`/`md:`, arbitrary values) **plus** theme tokens: `bg-|text-|border-|fill-|stroke-|ring-|from-|to-|via-` × `background foreground card card-foreground primary primary-foreground secondary secondary-foreground muted muted-foreground accent accent-foreground border input ring`, and `rounded-sm|md|lg|xl` (radius follows the site theme; `rounded-full`/`rounded-none` are fixed shapes that never do — see `tailwind.md`). `dark:` keys off `[data-theme="dark"]` on an ancestor (not `.dark`, not `prefers-color-scheme`). Candidate tokens ≤ 96 chars matching `^[!@]?-?[A-Za-z0-9_][\w:/\[\].%#(),!-]*$` — `!` and `-` are both accepted anywhere after the leading character too, not only at the very front, so `sm:!text-2xl` and `hover:-translate-y-1` both compile. **Arbitrary properties and arbitrary variants** compile too (`variant-check` ≥ 0.1.52): `[scrollbar-width:none]`, `[mask-image:linear-gradient(to_right,transparent,black_10%)]`, `[&::-webkit-scrollbar]:hidden`, `[&>*]:shrink-0`, `md:[&_p]:mt-2`, `[.is-open_&]:block`, `[@media_print]:hidden`. Inside `[...]` the characters `& > * ~ + = @` are accepted as well. Refused (warning `tailwind-skipped`, which names the reason; error under `--strict`): an `&` inside parentheses (`[:not(&)]`, `[:is(&,body)]`, `[*:has(&)]`, which would style elements outside the section), an `&` glued to a selector before it (write `[.x_&]`, not `[.x&]`), at-rule variants other than `@media`/`@supports`/`@container`/`@starting-style`, `url()`/`image-set()`/`image()`/`src()`/`cross-fade()`/`element()`/`expression()`, `behavior`/`-moz-binding`, and quotes, backslashes, `;` and braces. The same `&`-inside-parentheses rule applies to nested CSS in `<style>` (`.x { :not(&) {} }` is a `css-parse` error).
+
+### 6.1 Surfaces: which token is a background, and which only looks like one
+
+The palette has five authored colors (`primary`, `secondary`, `accent`, `background`, `foreground`); everything else is DERIVED from them, and the derivation is what decides whether a token is safe to put text on.
+
+| Token | How it is produced | Text on it |
+|---|---|---|
+| `bg-background` | authored | `text-foreground` |
+| `bg-card` | background mixed **2%** toward foreground | `text-foreground` / `text-muted-foreground` |
+| `bg-muted` | background mixed **6%** toward foreground | `text-foreground` / `text-muted-foreground` |
+| `bg-primary` `bg-secondary` `bg-accent` | authored **brand colors** | ONLY `text-*-foreground` (auto-computed for contrast) |
+| `bg-accent/10` and other `/NN` tints | the brand color at low alpha **over the page background** | normal text is fine |
+
+**`accent` is not a light tint — it only is in your file.** A converted template usually has something like `#f0f0f8` there, so `bg-accent text-foreground` looks perfect while you build it. Every palette the platform ships puts a saturated brand color in that slot (teal `#0d9488`, amber `#d97706`, blue `#2563eb`, yellow `#fbbf24`); the buyer opens the Style tab, picks one, and your section's text is unreadable — with nothing changed in the variant, and no warning anywhere on the site. `accent-foreground` exists precisely because it is recomputed for contrast against whatever `accent` becomes.
+
+**The source's band tint has no slot anywhere, and that is the point.** `muted` and `card` are derived, so there is nowhere to store the specific beige your source used: `#e9e2d7` becomes a derived warm grey. You are trading one exact color for a band that is guaranteed to stay a shade off the page under every palette the buyer can pick, in light and in dark. Take the trade — there is no version of this where the literal tint survives re-theming.
+
+So:
+
+- A section band that should read as "a shade off the page" is **`bg-muted`** (or `bg-card` for something subtler). Both are mixed FROM the background, so they stay a shade off it in light and dark, under every palette. This is what almost every converted `bg-gray-50` / `bg-[#f7f8fa]` section actually wants.
+- `bg-accent` is for a **highlight** — a badge, a pill, a callout, one emphasised card — and it takes `text-accent-foreground`.
+- A hover surface counts, and it is the easiest one to get wrong: write `hover:bg-accent hover:text-accent-foreground` as a PAIR. `hover:bg-accent` on its own turns the background into a brand color while the text stays whatever it inherited (`text-muted-foreground` on a list row, typically) — the inherited-foreground bug below, arrived at by following the highlight rule.
+- **An image well is not a highlight.** The backdrop behind an `<img>`, and the placeholder box for an image the buyer has not uploaded yet, should be `bg-muted` — they are meant to disappear behind the picture, and an empty slot in a teal palette should not be a teal rectangle.
+- Need a whisper of brand in a full-width band? `bg-accent/8` over the page background, with normal text.
+
+Lint `surface-foreground` (warning) catches the explicit contradiction: any string holding `bg-accent`/`bg-primary`/`bg-secondary` together with a text token from another surface. From `variant-check` 0.1.22 it reads **every string literal in the file**, not just `class` attributes — so a class list assembled in a `const` and applied through `class:list` is caught too (before that, moving a string into a const silenced the lint without changing the markup). One shared string is reported once, however many elements use it.
+
+The predicate itself stays as narrow as it was: full-strength surfaces only (`bg-accent/10` is a tint over the page background and fine with normal text), and an explicitly named foreign foreground. Across every component the platform ships, that fires on nothing — which is why it is worth reading when it does fire.
+
+**You are the safety net for what is left.** Three shapes are the same bug and cannot be seen by any string-level check. Check them by eye, every time:
+
+| | Shape | Why no lint can see it |
+|---|---|---|
+| A | `hover:bg-accent` with no `hover:text-*` | the hover foreground is inherited, not declared anywhere |
+| B | a `bg-accent` band with no `text-*` at all | same — inherited from an ancestor |
+| C | an empty image well / `<img>` backdrop on `bg-accent` | no text involved, so nothing contradicts — but a teal box is still wrong |
+
+## 7. Lint code table
+
+| code | level | meaning |
+|---|---|---|
+| `frontmatter` `empty` `internal` | error | file shape |
+| `import` `props` `props-type` `types` `astro` `ts-cast` `statement` | error | frontmatter |
+| `parse` `component` `spread` `arrow-block` `forbidden` `unknown-id` | error | template/expressions |
+| `tag` `attr` `attr-handler` `url` `style-url` `fixed` | error | HTML |
+| `img-alt`* `dead-text`* `hardcoded-image`* `hardcoded-color`* `hardcoded-radius`* `hardcoded-font`* `tailwind-skipped`* `heading-size-inert` `unknown-class` `id-attr` | warning | HTML/CSS quality |
+| `style-global` `style-define-vars` `style-size` `css-import` `css-font-face` `css-expression` `css-behavior` `css-url` `css-parse` `css-size` | error | CSS (`css-url` is a warning for unsplash/pexels hosts) |
+| `css-root` | warning | selector rewritten to root |
+| `script-inline` `script-src` `script-define-vars` `script-type` `script-size` `script-syntax` `script-obfuscation` `script-with` `script-import` `script-debugger` `script-forbidden` `script-html` `script-clipboard` `script-css-var-url` `script-loop` `script-count` `script-url-part` | error | JavaScript |
+| `script-url-query` | warning | JavaScript: a link's query/hash/path rewritten (§4) |
+| `uses-unknown` `gsap-undeclared` `gsap-vars` `gsap-quick-prop` `gsap-alias` `gsap-forbidden` `gsap-internal` `gsap-scroller` | error | GSAP (§4a) |
+| `tailwind` `ir-size` `source-size` `content-size` | error | build/upload limits (the last two are CLI-side, ≥ 0.1.17) |
+| `style-url` | error | inline style uses `url()`/`expression()` — for a content background use `data-edit-image-bg` (§2.3b) |
+| `edit-image-bg-conditional` | warning | (≥ 0.1.33) the `data-edit-image-bg` element renders only when its own field is set, so an empty section offers nothing to click to add a photo (§2.3b) |
+| `lightbox-not-img` | warning | (≥ 0.1.34) `data-lightbox` on something other than the `<img>` (§2.6) |
+| `lightbox-group-on-trigger` | warning | (≥ 0.1.34) `data-lightbox-group` on the same element as `data-lightbox` — groups nothing (§2.6) |
+| `text-not-editable` | error | (≥ 0.1.40) a content field printed as text without `data-edit-field` (§2.3) — an error on every upload, `--strict` or not; the message names the path to mark |
+| `text-not-editable-hidden` `text-editable-unsure` `text-edit-field-mismatch` | warning | (≥ 0.1.40) field text only inside `aria-hidden`/`<svg>`; an index the lint cannot trace (`.filter()` before `.map`), or (≥ 0.1.41) a list item reached through an expression the lint cannot follow; a marker naming another field (§2.3) |
+| `text-edit-group-missing` | error | (≥ 0.1.41) a value shared by several items (a group heading from `.map((p) => p.field)` + dedupe) printed without `data-edit-group` (§2.3a) — every upload, `--strict` or not; the message names the attributes. Do not restructure the layout to avoid it |
+| `edit-group-invalid` | error | (≥ 0.1.41) `data-edit-group` path is not `"<list>[].<text field>"` of a top-level list, or `data-edit-group-value` is missing / not the printed group value (§2.3a) |
+| `edit-image-bg-no-field` | warning | (≥ 0.1.33) `data-edit-image-bg` without `data-edit-image="<field>"` on the same element (§2.3b) |
+| `chrome-logo-missing` | warning | a `navbar` variant never reads `logoUrl` — `schema.md` chrome section |
+| `chrome-nav-pages-missing` | warning | a `navbar` variant never reads `pages` — the owner's "show in navbar" switch does nothing (§4b) |
+| `chrome-nav-subpages-flat` | warning | a `navbar` variant reads `pages` but never `parentId` — sub-pages render as ordinary top-level links (§4b) |
+| `chrome-footer-pages-missing` | warning | a `footer` variant never reads `footerPages` — the owner's "show in footer" switch does nothing (§4b) |
+| `surface-foreground` | warning | a brand surface (`bg-accent`/`bg-primary`/`bg-secondary`) paired with a foreign text token — §6.1 |
+| `content-required` | error | `--content` lacks a top-level field the section type requires AND this variant renders (hidden fields are exempt) — §9 |
+| `form-fields-type` | error | `<FormFields />` outside a `form` section — §5c |
+| `form-fields-no-fields` | warning | `<FormFields />` used but `fields` is not read from `Astro.props` — §5c |
+| `product-buybox-missing` `product-block-multiple` `product-block-type` | error | (≥ 0.1.45) a `product-detail` variant without `<ProductBuyBox />`; BuyBox/Gallery written twice; a product macro (incl. `<ProductAttributes />`, ≥ 0.1.46) outside `product-detail` — §4d |
+| `product-h1-missing` `product-detail-field-nontext` | warning | (≥ 0.1.45) product layout without `<h1>`; a product-layout field that is not text — §4d |
+| `product-cart-not-button` | error | (≥ 0.1.50) `data-pd-add` on anything but a `<button>` — §4d |
+| `product-cart-unguarded` | warning (strict: error) | (≥ 0.1.50) a `data-pd-add` button outside a `view.cart.enabled` condition — §4d |
+| `props-optional`* `props-unknown-item-key`* `props-type-mismatch` `props-undeclared` | warning | schema |
+| `ext-field-undocumented`* `ext-field-doc-thin` | warning | extension field docs (§1.2) |
+| `pair-with-unknown` `pair-with-not-array` `pair-with-bad-name` `pair-with-not-object` | error | `@pairWith` (§1.2c) — always an error, `--strict` or not |
+| `content-type` `content-required` `content-unknown-key` `content-min-items` `content-max-items` `content-enum` `content-invalid` `content-image-url` | error | `--content` validated against the base schema (§9) — always an error, `--strict` or not |
+
+`*` = becomes an **error** in strict mode (`--strict`, and always when submitting for review).
+
+## 8. Unsupported
+
+`post` cannot be a WVF variant. Site chrome (`navbar`, `banner`, `footer`) can (§4b), and so can the product page layout `product-detail` (§4d), which is not a page section. Everything else in the section catalog can (see `schema.md`).
+
+## 9. CLI
+
+```
+npx @webto-id/variant-check <file.astro> --type <sectionType> [--strict] [--content sample.json] [--manifest variant.json] [--out preview.html] [--theme light|dark|warm] [--json]
+```
+Exit 0 = clean, 1 = errors, 2 = usage. Run with `--strict` before submitting. `--content` is checked against the base schema too (`content-*` codes above) — a required nested field left empty or a base array item shaped wrong fails here, not only on upload.
+
+**What `--content` checks, from 0.1.23.** Field shapes all the way down (as before) PLUS the section type's top-level `required` keys -- the same ones the upload dry-run enforces -- minus any the variant hides. A field you never read in `Props` lands in `hidden base fields` and is exempt on both sides: the CLI does not demand it, and since 2026-09-17 neither does the upload (the editor hides it for this variant, so a buyer could never fill it). A key with a platform default (`ctaText`, `viewMoreAlign`, ...) is never required. The list per type is in `schema.md`. Before 0.1.23 the bundled schema carried no `required` at all, so `0 error(s)` could still be rejected at upload with `"heading" wajib diisi`.
+
+**Image fields have a shape, enforced from 0.1.30.** Every base image field (`logos[].image`, `members[].image`, `features[].image`, `products[].image`, `steps[].image`, `posts[].image`, `beforeImage`/`afterImage`, `logoUrl`/`logoUrlDark`) accepts only: an absolute `http(s)` URL, an uploaded path (`/r2/`, `/media/`, `/illu/`), one of the sentinels `__IMG__:` / `__ILLU__:` / `asset:`, or empty. A relative path such as `assets/logo.png` is rejected by the upload — and used to lint clean here, because the platform rule is a Zod `.refine()` and JSON Schema cannot carry one. Those fields now ship tagged, so `--content` reports `content-image-url` instead of letting the upload find it.
+
+**The manifest is checked too, from 0.1.29.** `<key>.variant.json` / `variant.json` (or a bundle's `template.json`) is picked up automatically when it sits beside the `.astro` or one level up -- so `sections/<key>.astro` finds its bundle manifest with no flag; `--manifest <file>` points at it explicitly, `--no-manifest` opts out. The rules are generated from the platform's own schema, so the `mood` enum here IS the enum the upload enforces. **Error**: a mood outside the enum, more than 4 of them, a `description` under 15 characters, an unknown `sectionType`, a bad or duplicated `key` (a standalone `variant.json` needs none -- the uploader takes it from the filename, and a key that disagrees only warns), more than 24 variants in one `template.json` (12 before 0.1.59), or a `sectionType` that disagrees with `--type`. **Warning**: `description`/`mood` absent (legal for a draft and for a patch-mode re-upload, refused at submit -- so `--strict` makes both errors), a field name the upload would silently strip (`moods`, `tags`), a legacy `hero-*` alias, and an `.astro` with no matching entry. Before this, a bundle could lint clean and still be rejected for four invented moods.
+
+**The `--out` preview resets what the site resets.** Its base layer now zeroes the margin on every element Tailwind preflight zeroes (`blockquote dl dd figure figcaption h1-h6 hr p pre`, `fieldset`), so a `figure` + `blockquote` testimonial measures the same at 390px in `preview.html` as on the live site. Before 0.1.15 only `h1-h4 p ul ol` were reset and the parity check invited `m-0` fixes for a defect that did not exist.

@@ -1,0 +1,97 @@
+name: landing-3d
+version: 1
+title: 3D landing page
+summary: >
+  A landing page built around one 3D moment (a model that turns as the visitor
+  scrolls, a scroll-scrubbed video, a label that turns, a photo with depth),
+  with a real image behind it for every visitor who never sees the effect.
+use_when:
+  - "A landing page with a 3D product / WebGL hero"
+  - "Landing page dengan efek 3D"
+  - One page whose job is to impress, then convert
+bundle: site
+core_skills: [webto-website, html-to-webto-variant, webto-3d-effects]
+optional_skills: []
+orchestration:
+  max_revisions_per_stage: 3
+
+stages:
+  - name: preflight
+    skill: pipelines/shared/preflight-director
+    produces: [preflight]
+    human_approval: false
+    success_criteria:
+      - reports/preflight.json says the token works and whether a browser is available
+
+  - name: concept
+    skill: pipelines/landing-3d/concept-director
+    requires: [preflight]
+    produces: [brief, concept, design_direction]
+    human_approval: true
+    approval_shows: The page's one job, the 3D recipe, where its asset comes from, the look
+    success_criteria:
+      - Exactly one 3D section is planned for the page
+      - The source of the model or footage is named, with who holds the rights
+
+  - name: assets
+    skill: pipelines/landing-3d/assets-director
+    requires: [concept]
+    produces: [assets_manifest]
+    human_approval: false
+    success_criteria:
+      - Every file is inside the platform's size limits
+      - A poster image exists for the 3D section
+
+  - name: plan
+    skill: pipelines/shared/plan-director
+    requires: [brief, concept]
+    produces: [site_plan]
+    human_approval: false
+    success_criteria:
+      - The page reads complete with the 3D section replaced by its poster
+
+  - name: build
+    skill: pipelines/shared/build-director
+    requires: [site_plan, design_direction, assets_manifest]
+    produces: [bundle, check_report]
+    review: true
+    human_approval: false
+    success_criteria:
+      - "`studio check` reports zero errors on the bundle as it is on disk"
+      - The 3D section follows a recipe of the webto-3d-effects skill
+
+  - name: draft
+    skill: pipelines/shared/draft-director
+    requires: [bundle, check_report]
+    produces: [lock]
+    human_approval: true
+    approval_shows: The dry-run report of create_site
+    success_criteria:
+      - The dry run returned ok true before the confirmed call
+
+  - name: verify
+    skill: pipelines/shared/verify-director
+    requires: [lock]
+    produces: [shots, review]
+    review: true
+    human_approval: false
+    success_criteria:
+      - Captured at 390, 768 and 1280 px
+      - The page was also checked with reduced motion, where only the poster shows
+
+  - name: publish
+    skill: pipelines/shared/publish-director
+    requires: [shots, review]
+    produces: []
+    human_approval: true
+    approval_shows: The preview link and the public address
+    success_criteria:
+      - The user opened the preview and said yes to this address
+
+  - name: handoff
+    skill: pipelines/shared/handoff-director
+    requires: [lock]
+    produces: [handoff]
+    human_approval: false
+    success_criteria:
+      - handoff.md says which files the 3D section uses and how to replace them

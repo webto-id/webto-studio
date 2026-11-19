@@ -1,0 +1,10 @@
+{
+  "headline": "Marmalade",
+  "subheadline": "Irisan jeruk organik, dimasak perlahan dalam panci tembaga.",
+  "ctaText": "Pesan Sekarang",
+  "ctaUrl": "/produk",
+  "images": [{ "url": "/r2/s/jar-empty.webp", "alt": "Toples selai jeruk" }, { "url": "/r2/s/label-flat.webp" }],
+  "labelTop": 24,
+  "labelHeight": 62,
+  "labelInset": 6
+}

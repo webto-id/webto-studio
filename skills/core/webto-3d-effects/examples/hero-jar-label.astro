@@ -1,0 +1,144 @@
+---
+import { img, url, Button, EditUrlPill } from "webto/variant";
+
+interface Props {
+  /** Small label above the jar, ≤6 words: what the product is and where it comes from. @example Selai jeruk rumahan · Malang */
+  badge?: string;
+  /** The brand or product name, printed huge behind the jar (above it on phones), ≤3 words. @example Marmalade */
+  headline?: string;
+  /** One sentence under the jar, ≤20 words. @example Irisan jeruk organik, dimasak perlahan dalam panci tembaga. */
+  subheadline?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  /** [0] the jar photo WITHOUT its label, on a transparent background (PNG/WebP), upright and straight-on, cropped so the jar is centred left-to-right. [1] the label as printed: the full flat strip that wraps all the way around the jar. @example [{"url":"/r2/s/jar-empty.webp","alt":"Toples selai jeruk"},{"url":"/r2/s/label-flat.webp"}] */
+  images?: Array<{ url: string; alt?: string }>;
+  /** Fallback jar photo, used only when images is empty (a photo kept from another hero design). Leave empty when images is filled. @example /r2/s/toples.webp */
+  imageUrl?: string;
+  /** Where the label's top edge sits on the jar photo, in % of the photo height from the top. Put it on the straight part of the glass. @example 24 */
+  labelTop?: number;
+  /** The label's height, in % of the photo height. @example 58 */
+  labelHeight?: number;
+  /** The bare glass at each side of the label, in % of the photo width (the jar's edge to the label's edge). @example 4 */
+  labelInset?: number;
+}
+
+const {
+  badge,
+  headline,
+  subheadline,
+  ctaText = "Pesan",
+  ctaUrl = "#",
+  images = [],
+  imageUrl = "",
+  labelTop = 24,
+  labelHeight = 58,
+  labelInset = 4,
+} = Astro.props;
+const jarSrc = images[0]?.url || imageUrl;
+const jar = img(jarSrc, 1200);
+const jarPath = images[0]?.url ? "images.0.url" : imageUrl ? "imageUrl" : "images.0.url";
+const label = img(images[1]?.url, 2000);
+const headSize = (headline || "").length > 14 ? "clamp(2.75rem, 9vw, 8rem)" : "clamp(3.25rem, 15vw, 13rem)";
+const box = `top: ${labelTop}%; height: ${labelHeight}%; left: ${labelInset}%; right: ${labelInset}%;`;
+---
+<section class="relative h-[220vh] bg-background text-foreground">
+  <div class="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden px-6">
+    <div aria-hidden="true" class="pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15"></div>
+    {badge && (
+      <p data-edit-field="badge" class="relative z-10 mb-5 rounded-full border border-border bg-background/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{badge}</p>
+    )}
+    <h1 class="pointer-events-none relative z-10 mb-4 px-2 text-center sm:absolute sm:inset-x-0 sm:top-1/2 sm:z-0 sm:mb-0 sm:-translate-y-1/2 sm:px-4 font-black uppercase leading-[0.82] tracking-tight text-primary-text" style={`font-size: ${headSize}; font-family: var(--font-heading);`} data-edit-field="headline">{headline}</h1>
+    <div data-jar class="relative z-10 h-[44vh] max-h-[620px] sm:h-[60vh]">
+      {jar ? (
+        <img src={jar} crossorigin="anonymous" alt={images[0]?.alt ?? ""} data-edit-image={jarPath} class="block h-full w-auto max-w-none drop-shadow-2xl" />
+      ) : (
+        <div data-edit-image="images.0.url" class="h-full w-[28vh] rounded-xl border-2 border-dashed border-border bg-muted sm:w-[34vh]"></div>
+      )}
+      {jar && label && (
+        <img data-label src={label} crossorigin="anonymous" alt="" data-edit-image="images.1.url" class="absolute object-cover" style={box} />
+      )}
+      <div data-gl data-rect={`${labelTop} ${labelHeight} ${labelInset}`} class="absolute inset-0" aria-hidden="true"></div>
+    </div>
+    <div class="relative z-10 mt-7 flex max-w-xl flex-col items-center text-center">
+      {subheadline && <p data-edit-field="subheadline" class="text-base text-muted-foreground sm:text-lg">{subheadline}</p>}
+      {ctaText && (
+        <Button href={url(ctaUrl)} size="lg" class="relative mt-5 rounded-full">
+          <span data-edit-field="ctaText">{ctaText}</span>
+          <EditUrlPill field="ctaUrl" value={ctaUrl} />
+        </Button>
+      )}
+    </div>
+  </div>
+</section>
+
+<script is:inline data-uses="gsap scroll-trigger ogl">
+  // Guard first: a re-run must not create a second set of tweens.
+  if (root.dataset.wvInit) return;
+  root.dataset.wvInit = "1";
+  const jarBox = root.querySelector("[data-jar]");
+  const flat = root.querySelector("[data-label]");
+  const host = root.querySelector("[data-gl]");
+  if (!jarBox || !host) return;
+  const turn = { a: 0 };
+  gsap.context(() => {
+    // The jar leans and lifts as the section scrolls by: GSAP only, so it also runs without WebGL.
+    gsap.fromTo(jarBox, { rotation: 0, yPercent: 0 }, { rotation: -12, yPercent: -6, ease: "none", scrollTrigger: { trigger: root, start: "top top", end: "bottom bottom", scrub: true } });
+    // One full turn of the label over the section.
+    gsap.to(turn, { a: 1, ease: "none", scrollTrigger: { trigger: root, start: "top top", end: "bottom bottom", scrub: true } });
+  }, root);
+
+  if (!OGL || !flat) return;
+  const parts = (host.dataset.rect || "24 58 4").split(" ").map(Number);
+  const { Renderer, Program, Mesh, Triangle, Texture } = OGL;
+  const renderer = new Renderer({ dpr: window.devicePixelRatio, alpha: true, premultipliedAlpha: false });
+  const gl = renderer.gl;
+  // flipY: false, or the label comes out upside down.
+  const tLabel = new Texture(gl, { generateMipmaps: false, flipY: false });
+  const program = new Program(gl, {
+    transparent: true,
+    vertex: `attribute vec2 uv; attribute vec2 position; varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 0.0, 1.0); }`,
+    fragment: `precision highp float;
+      uniform sampler2D tLabel; uniform float uTurn; uniform vec4 uRect; varying vec2 vUv;
+      const float PI = 3.14159265;
+      void main() {
+        vec2 p = vec2(vUv.x, 1.0 - vUv.y);
+        float nx = (p.x - uRect.x) / (uRect.z - uRect.x) * 2.0 - 1.0;
+        if (abs(nx) >= 1.0) discard;
+        float theta = asin(nx);
+        float lift = cos(theta) * 0.035;
+        float v = (p.y - uRect.y - lift * (uRect.w - uRect.y)) / (uRect.w - uRect.y);
+        if (v < 0.0 || v > 1.0) discard;
+        float u = fract(uTurn + theta / (2.0 * PI) + 0.5);
+        vec3 c = texture2D(tLabel, vec2(u, v)).rgb;
+        float shade = 0.45 + 0.55 * pow(cos(theta), 0.7);
+        float shine = 0.16 * smoothstep(0.18, 0.0, abs(nx + 0.38));
+        float edge = smoothstep(1.0, 0.94, abs(nx));
+        gl_FragColor = vec4(c * shade + shine, edge);
+      }`,
+    uniforms: { tLabel: { value: tLabel }, uTurn: { value: 0 }, uRect: { value: [0, 0, 1, 1] } },
+  });
+  program.uniforms.uRect.value = [parts[2] / 100, parts[0] / 100, 1 - parts[2] / 100, (parts[0] + parts[1]) / 100];
+  const mesh = new Mesh(gl, { geometry: new Triangle(gl), program });
+  // setSize writes pixel sizes into the canvas style; keep it stretched to the jar box so a late resize never offsets the label.
+  const fit = () => {
+    renderer.setSize(jarBox.clientWidth, jarBox.clientHeight);
+    gl.canvas.style.width = "100%";
+    gl.canvas.style.height = "100%";
+  };
+  function start() {
+    tLabel.image = flat;
+    host.appendChild(gl.canvas);
+    fit();
+    new ResizeObserver(fit).observe(jarBox);
+    function frame() {
+      requestAnimationFrame(frame);
+      program.uniforms.uTurn.value = turn.a;
+      renderer.render({ scene: mesh });
+    }
+    requestAnimationFrame(frame);
+    // Hide the flat label only once the canvas has drawn, so there is never a frame without a label.
+    requestAnimationFrame(() => { flat.style.visibility = "hidden"; });
+  }
+  if (flat.complete && flat.naturalWidth) start();
+  else flat.addEventListener("load", start, { once: true });
+</script>

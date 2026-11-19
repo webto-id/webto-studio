@@ -1,0 +1,73 @@
+name: template-for-sale
+version: 1
+title: Template ready to sell
+summary: >
+  Design a full site template for one kind of business, package it as a bundle
+  that passes the marketplace's strict check, upload it as a draft, and prepare
+  its listing. The price and the decision to publish stay with the seller.
+use_when:
+  - "Make a template for <kind of business>"
+  - "Buat template untuk dijual di marketplace"
+  - The result is merchandise for many buyers, not one client's site
+bundle: template
+core_skills: [html-to-webto-template, html-to-webto-variant]
+optional_skills: [webto-3d-effects]
+orchestration:
+  max_revisions_per_stage: 3
+
+stages:
+  - name: preflight
+    skill: pipelines/shared/preflight-director
+    produces: [preflight]
+    human_approval: false
+    success_criteria:
+      - reports/preflight.json lists the template scopes of the token
+
+  - name: concept
+    skill: pipelines/template-for-sale/concept-director
+    requires: [preflight]
+    produces: [concept, design_direction, site_plan]
+    human_approval: true
+    approval_shows: Who the template is for, its pages, its look, and its working name
+    success_criteria:
+      - The concept names one buyer and what sets this template apart
+      - design_direction.json names one design language
+
+  - name: build
+    skill: pipelines/template-for-sale/build-director
+    requires: [concept, design_direction, site_plan]
+    produces: [bundle, check_report]
+    review: true
+    human_approval: false
+    success_criteria:
+      - "`studio check --strict` reports zero errors and zero warnings"
+      - Every section survives one item, the maximum number of items, and missing optional fields
+      - No sample fact about a real person or business
+
+  - name: draft
+    skill: pipelines/template-for-sale/draft-director
+    requires: [bundle, check_report]
+    produces: [lock]
+    human_approval: true
+    approval_shows: The dry-run report of create_template_draft
+    success_criteria:
+      - The dry run returned ok true before the confirmed call
+
+  - name: verify
+    skill: pipelines/shared/verify-director
+    requires: [lock]
+    produces: [shots, review]
+    review: true
+    human_approval: false
+    success_criteria:
+      - Every page of the draft preview was captured at 390, 768 and 1280 px, light and dark
+
+  - name: listing
+    skill: pipelines/template-for-sale/listing-director
+    requires: [shots, review]
+    produces: [listing]
+    human_approval: true
+    approval_shows: The exact listing (name, title, category, price) before anything is created
+    success_criteria:
+      - The price was named by the seller, never proposed as a fact
+      - The listing was created as a draft unless the seller asked to publish

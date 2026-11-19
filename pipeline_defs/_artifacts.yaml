@@ -1,0 +1,40 @@
+# Where each artifact lives inside projects/<slug>/, and the schema that checks it.
+# `{bundle}` is the pipeline's bundle folder: `site` or `template`.
+# `{stage}` is the stage being checkpointed.
+preflight:
+  path: reports/preflight.json
+brief:
+  path: brief.json
+  schema: brief
+content_inventory:
+  path: content_inventory.json
+  schema: content_inventory
+concept:
+  path: concept.json
+  schema: concept
+site_plan:
+  path: site_plan.json
+  schema: site_plan
+design_direction:
+  path: design_direction.json
+  schema: design_direction
+assets_manifest:
+  path: assets_manifest.json
+  schema: assets_manifest
+bundle:
+  path: "{bundle}/{bundle}.json"
+check_report:
+  path: reports/check.json
+  fresh: true # must describe the bundle as it is on disk right now
+lock:
+  path: "{bundle}/webto.lock.json"
+shots:
+  path: shots/index.json
+review:
+  path: "review/{stage}.json"
+  schema: review
+listing:
+  path: listing.json
+  schema: listing
+handoff:
+  path: handoff.md

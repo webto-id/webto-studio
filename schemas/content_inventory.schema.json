@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "content_inventory",
+  "description": "What an existing site holds, as read by `studio crawl` and then corrected by the agent and the user.",
+  "type": "object",
+  "required": ["source_url", "crawled_at", "authorized_by_user", "pages"],
+  "properties": {
+    "source_url": { "type": "string", "minLength": 1 },
+    "crawled_at": { "type": "string" },
+    "authorized_by_user": { "const": true, "description": "The user said they may reuse this site's content" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["url", "path", "title"],
+        "properties": {
+          "url": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "headings": { "type": "array", "items": { "type": "object", "required": ["level", "text"], "properties": { "level": { "type": "integer" }, "text": { "type": "string" } } } },
+          "text_blocks": { "type": "array", "items": { "type": "string" } },
+          "images": { "type": "array", "items": { "type": "object", "required": ["src"], "properties": { "src": { "type": "string" }, "alt": { "type": "string" }, "rights": { "enum": ["own", "licensed", "unknown"] } } } },
+          "links": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "nav": { "type": "array", "items": { "type": "object", "required": ["label", "href"], "properties": { "label": { "type": "string" }, "href": { "type": "string" } } } },
+    "contacts": {
+      "type": "object",
+      "properties": {
+        "phones": { "type": "array", "items": { "type": "string" } },
+        "emails": { "type": "array", "items": { "type": "string" } },
+        "whatsapp": { "type": "array", "items": { "type": "string" } },
+        "social": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "skipped": { "type": "array", "items": { "type": "object", "required": ["url", "reason"], "properties": { "url": { "type": "string" }, "reason": { "type": "string" } } } },
+    "not_carried": { "type": "array", "items": { "type": "string" }, "description": "Things the old site does that the new one will not, in plain words" }
+  }
+}

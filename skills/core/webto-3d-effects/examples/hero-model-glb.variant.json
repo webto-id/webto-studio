@@ -1,0 +1,7 @@
+{
+  "sectionType": "hero",
+  "name": "Hero 3D Model Turn",
+  "description": "Headline and CTA beside a real 3D model of the product (.glb) that turns as the visitor scrolls and tilts toward the pointer, with a poster photo wherever 3D is off.",
+  "mood": ["bold", "warm"],
+  "fits": "a product with a .glb model (exported from Blender, Draco OK, max 10 MB) + a poster photo of the same product"
+}

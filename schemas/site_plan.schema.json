@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "site_plan",
+  "description": "Pages, the sections on each, and the distinct section designs to author.",
+  "type": "object",
+  "required": ["pages", "variants", "limits"],
+  "properties": {
+    "subdomain": { "type": "string", "description": "The address the user chose, after check_subdomain said it is free" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["title", "slug", "sections"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "slug": { "type": "string", "description": "Empty string for the home page" },
+          "parent": { "type": "string" },
+          "sections": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["type", "variant", "purpose"],
+              "properties": {
+                "type": { "type": "string", "minLength": 1 },
+                "variant": { "type": "string", "minLength": 1, "description": "A key from `variants`, or a platform variant name for the few exceptions" },
+                "purpose": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "required": ["key", "sectionType"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "sectionType": { "type": "string", "minLength": 1 },
+          "uses": { "type": "array", "items": { "type": "string" }, "description": "Platform libraries: gsap, scroll-trigger, ogl, three, lenis" }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "description": "What get_plan_limits returned and how the plan fits it",
+      "required": ["checked_at", "fits"],
+      "properties": {
+        "checked_at": { "type": "string" },
+        "fits": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "redirects": {
+      "type": "array",
+      "description": "Migration only: every old address and where it goes",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": ["string", "null"], "description": "New path, or null when the page is dropped" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

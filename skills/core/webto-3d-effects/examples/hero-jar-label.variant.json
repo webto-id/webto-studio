@@ -1,0 +1,7 @@
+{
+  "sectionType": "hero",
+  "name": "Hero Jar Label Turn",
+  "description": "A product jar or bottle centred over one huge headline word; its flat printed label wraps around it and turns as the visitor scrolls (WebGL) while the jar leans, with one line and a CTA below.",
+  "mood": ["bold", "editorial"],
+  "fits": "one-word headline + a label-less jar photo on a transparent background + the flat label artwork"
+}

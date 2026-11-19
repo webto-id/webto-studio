@@ -1,0 +1,92 @@
+name: site-migration
+version: 1
+title: Move an existing site
+summary: >
+  Read a client's current website (WordPress, Wix, hand-written HTML), carry
+  its real content into a redesigned site on the platform, and leave a list of
+  old addresses so nothing the client had indexed goes missing.
+use_when:
+  - "Move <url> to webto"
+  - "Pindahkan / buat ulang website lama klien"
+  - The client already has a site and its content must survive
+bundle: site
+core_skills: [webto-website, html-to-webto-variant]
+optional_skills: [webto-3d-effects]
+orchestration:
+  max_revisions_per_stage: 3
+
+stages:
+  - name: preflight
+    skill: pipelines/shared/preflight-director
+    produces: [preflight]
+    human_approval: false
+    success_criteria:
+      - reports/preflight.json says the token works and lists its scopes
+
+  - name: inventory
+    skill: pipelines/site-migration/inventory-director
+    requires: [preflight]
+    produces: [content_inventory, brief]
+    human_approval: true
+    approval_shows: What was found, what will be carried, what will not, what is still missing
+    success_criteria:
+      - The user confirmed they may reuse this site's content
+      - Every fact in brief.json comes from the old site or from the user
+      - Images are marked "own" only where the user said the client holds the rights
+
+  - name: plan
+    skill: pipelines/shared/plan-director
+    requires: [brief, content_inventory]
+    produces: [site_plan, design_direction]
+    human_approval: true
+    approval_shows: Pages, sections, visual direction, subdomain, and the old-to-new address map
+    success_criteria:
+      - Every old page is mapped to a new page or listed as dropped, with the reason
+      - The plan fits the limits get_plan_limits returned
+
+  - name: build
+    skill: pipelines/shared/build-director
+    requires: [site_plan, design_direction]
+    produces: [bundle, check_report]
+    review: true
+    human_approval: false
+    success_criteria:
+      - "`studio check` reports zero errors on the bundle as it is on disk"
+      - No text was rewritten in a way that changes a fact
+
+  - name: draft
+    skill: pipelines/shared/draft-director
+    requires: [bundle, check_report]
+    produces: [lock]
+    human_approval: true
+    approval_shows: The dry-run report of create_site
+    success_criteria:
+      - The dry run returned ok true before the confirmed call
+
+  - name: verify
+    skill: pipelines/shared/verify-director
+    extra_skills: [pipelines/site-migration/parity-director]
+    requires: [lock]
+    produces: [shots, review]
+    review: true
+    human_approval: false
+    success_criteria:
+      - Every page of the real draft was captured at 390, 768 and 1280 px
+      - Each old page was compared with its new page for missing content
+
+  - name: publish
+    skill: pipelines/shared/publish-director
+    requires: [shots, review]
+    produces: []
+    human_approval: true
+    approval_shows: The preview link and the public address
+    success_criteria:
+      - The user opened the preview and said yes to this address
+
+  - name: handoff
+    skill: pipelines/shared/handoff-director
+    requires: [lock]
+    produces: [handoff]
+    human_approval: false
+    success_criteria:
+      - handoff.md carries the old-to-new address map and the domain steps

@@ -1,0 +1,20 @@
+{
+  "brand": "webto",
+  "studioName": "webto-studio",
+  "platform": {
+    "name": "webto.id",
+    "dashboardUrl": "https://app.webto.id",
+    "apiUrl": "https://api.webto.id",
+    "mcpUrl": "https://api.webto.id/mcp",
+    "docsUrl": "https://docs.webto.id",
+    "catalogUrl": "https://webto.id/templates/",
+    "siteDomain": "wpage.id",
+    "currency": "IDR"
+  },
+  "agent": {
+    "mcpServerName": "webto",
+    "tokenEnv": "WEBTO_TOKEN",
+    "tokenPrefix": "wbt_",
+    "validatorPackage": "@webto-id/variant-check"
+  }
+}

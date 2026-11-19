@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "webto": {
+      "type": "http",
+      "url": "https://api.webto.id/mcp",
+      "headers": {
+        "Authorization": "Bearer ${WEBTO_TOKEN}"
+      }
+    }
+  }
+}

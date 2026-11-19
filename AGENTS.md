@@ -1,0 +1,6 @@
+# webto-studio
+
+MANDATORY: read `AGENT_GUIDE.md` in full before responding to any user
+message in this folder. It is the contract for all work here: which pipeline
+to run, how stages and approval gates work, and the rules that hold in every
+stage. There are no other instructions in this file.

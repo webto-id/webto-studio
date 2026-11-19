@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "brief",
+  "description": "What is known about the business and what the site must do. Every fact names where it came from.",
+  "type": "object",
+  "required": ["business", "language", "goal", "facts", "open_questions"],
+  "properties": {
+    "business": {
+      "type": "object",
+      "required": ["name", "kind"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1, "description": "Kind of business, in plain words: warung, klinik gigi, notaris, kontraktor" },
+        "description": { "type": "string" }
+      }
+    },
+    "language": { "type": "string", "description": "Language of the site's content, e.g. id or en" },
+    "goal": { "type": "string", "minLength": 1, "description": "The one thing a visitor should do" },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "source"],
+        "properties": {
+          "field": { "type": "string", "minLength": 1 },
+          "value": {},
+          "source": { "enum": ["user", "document", "old_site"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "look": {
+      "type": "object",
+      "properties": {
+        "feel": { "type": "array", "items": { "type": "string" } },
+        "colors": { "type": "array", "items": { "type": "string" } },
+        "references": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "what", "rights"],
+        "properties": {
+          "file": { "type": "string" },
+          "what": { "type": "string" },
+          "rights": { "enum": ["own", "licensed", "unknown"] }
+        }
+      }
+    },
+    "declined": { "type": "array", "items": { "type": "string" }, "description": "Interview rows the user chose not to answer" },
+    "open_questions": { "type": "array", "items": { "type": "string" }, "description": "Must be empty before the plan stage" }
+  }
+}

@@ -1,0 +1,174 @@
+# site.json
+
+One file describes the whole website. It is the same site definition the
+platform's template importer reads, validated by the same schema, with two
+differences: no `listing` (a website is not merchandise), and — after an
+export — an `id` on every page and section.
+
+```jsonc
+{
+  "siteName": "Warung Senja",
+  "language": "id",                 // 30 languages; drives fixed UI labels ("Alamat", "Baca selengkapnya")
+  "siteType": "website",            // "website" | "landing" | "personal" — exactly these
+  "aiDescription": "Warung makan…",   // 1-3 sentences; feeds the site's AI context (llms.txt, blog)
+  "businessProfile": { … },         // strongly recommended, see below
+  "theme": { … },                   // optional; omitted keys take platform defaults
+  "siteSections": [ … ],            // chrome: exactly one navbar (header), optional banner, footer
+  "pages": [ … ],                   // one page must have slug "" (the homepage)
+  "variants": [ … ]                 // one entry per sections/<key>.astro — every section you design
+}
+```
+
+The subdomain is NOT in site.json: pass it to `create_site` as `subdomain`
+(after `check_subdomain`), or publish under a new one with `publish_site`.
+`variant-check site` tolerates a top-level `subdomain` key, so you may keep it
+there as a note.
+
+## businessProfile
+
+Fill it from the interview; every field is optional, none may be invented.
+
+```json
+{
+  "legalName": "CV Kopi Senja Nusantara",
+  "phone": "+6281234567890",
+  "email": "halo@kopisenja.id",
+  "businessType": "FoodEstablishment",
+  "address": { "street": "Jl. Braga No. 12", "city": "Bandung", "region": "Jawa Barat", "postalCode": "40111", "country": "ID" },
+  "openingHours": [{ "days": ["Mo", "Tu", "We", "Th", "Fr"], "open": "08:00", "close": "22:00" }, { "days": ["Sa", "Su"], "open": "09:00", "close": "23:00" }],
+  "socialLinks": ["https://instagram.com/kopisenja"]
+}
+```
+
+`businessType` is a closed list: Organization, SoftwareApplication,
+LocalBusiness, Restaurant, Store, MedicalBusiness, ProfessionalService,
+HealthAndBeautyBusiness, AutomotiveBusiness, HomeAndConstructionBusiness,
+FoodEstablishment, LodgingBusiness, SportsActivityLocation,
+EducationalOrganization. It drives the site's structured data (Google rich
+results). `phone` also switches on the floating WhatsApp button when the site
+is created.
+
+## theme
+
+All keys optional. Values are closed sets — anything else is an error.
+
+| key | values |
+|---|---|
+| `colorMode` | `light`, `dark`, `system` |
+| `colors`, `darkColors` | `primary`, `secondary`, `background`, `foreground`, `accent` — hex (`#9A5B00`) or rgb/hsl |
+| `fonts` | `heading`, `body`: one of the platform's 93 Google Fonts (Inter, Poppins, Playfair Display, Plus Jakarta Sans, DM Sans, Lora, …; `variant-check site` prints the full list on a wrong name); `headingSize` 24–96, `bodySize` 12–24 |
+| `radius` | 0–24 (px) |
+| `layout` | `fullscreen`, `boxed` |
+| `maxWidth` | `3xl` … `7xl` |
+| `spacing` | `compact`, `normal`, `spacious` |
+| `textGradient` | `none`, `subtle`, `vibrant` |
+| `pageTransitions` | `none`, `fade` |
+
+Pick a palette that fits the business and has contrast: `foreground` must read
+on `background`, and text on `primary` must read too. On an update, OMIT
+`theme` to keep the site's theme; a theme you send replaces it whole.
+
+### `smoothScroll` (smooth wheel scrolling)
+
+`"smoothScroll": true` turns on smooth, inertial mouse-wheel scrolling for the
+whole site (Lenis, one instance the platform runs; default `false`). Touch
+scrolling, the editor and visitors who prefer reduced motion keep normal
+scrolling. Pinned or scrubbed GSAP sections stay in sync with it. Turn it on
+for an editorial, portfolio or premium-brand feel; leave it off for stores and
+long forms. Because a theme you send replaces the old one, keep
+`smoothScroll` in every update that should keep it on. Never start Lenis or
+another scroll library in a variant script.
+
+## siteSections and pages
+
+```jsonc
+"siteSections": [
+  { "type": "navbar", "position": "header", "variant": "u:@navbar-warung", "content": { "siteName": "Warung Senja", "ctaText": "Pesan", "ctaUrl": "https://wa.me/6281234567890" } },
+  { "type": "footer", "position": "footer", "variant": "u:@footer-warung", "content": { "text": "© 2026 Warung Senja" } }
+],
+"pages": [
+  {
+    "title": "Beranda",
+    "slug": "",                     // "" = homepage; others are slugified ("Menu Kami" → "menu-kami")
+    "seoTitle": "Warung Senja — masakan rumahan di Jl. Kaliurang, Yogyakarta",
+    "seoDescription": "…",
+    "parent": "layanan",            // OPTIONAL: makes this a sub-page (see below) — not on the homepage
+    "showInNavbar": true,           // default true
+    "showInFooter": false,          // default false
+    "sections": [
+      { "type": "hero", "variant": "u:@hero-warung", "content": { "headline": "…", "ctaText": "Lihat menu", "ctaUrl": "/menu", "images": [{ "url": "asset:warung.jpg", "alt": "Bagian depan Warung Senja" }] } },
+      { "type": "cta", "variant": "u:@cta-warung", "content": { "heading": "…", "buttonText": "Chat WhatsApp", "buttonUrl": "https://wa.me/6281234567890" } }
+    ]
+  }
+]
+```
+
+- `type`: from `catalog.md`. `variant`: `u:@<key>` for your own section (the rule), or a platform variant name from `catalog.md` for the exceptions (`map`, `post`); omitting it gives the type's first platform variant. `content` must match the type's base fields (plus the extension fields your variant declares).
+- The navbar lists the site's pages automatically (those with `showInNavbar`) — do not restate them in `content.links`, which is for EXTRA destinations only.
+- **Sub-pages: `"parent": "<slug>"`** puts a page under another one; the navbar shows it in the parent's dropdown (desktop) and accordion (mobile) — your navbar variant must render that (variant skill `wvf.md` §4b, `examples/navbar-dropdown.astro`). One level only; the parent is another page of this site.json (never the homepage) and itself top-level. Use it when a page has natural children the user named: Layanan → one page per service they offer; Tentang → Tim, Sejarah; Menu → Katering. Two or three services on one Layanan page is better than three thin sub-pages — nest only when each child has content of its own. Every sub-page counts toward the plan's page limit like any page.
+- **On `update_site` / `add_page`:** a page that leaves `parent` out keeps its current parent (by id) — the owner may have nested pages in the editor; `"parent": null` makes it top-level. The export writes `parent` for every sub-page, and a parent renamed in the same update is followed. Deleting a parent page (with `allowPageRemoval`) turns its remaining children into top-level pages; the dry run says so.
+- Links between pages: `/menu`, `/kontak`; to a section on the same page: `#contact`, `#pricing` (every section gets an anchor from its type automatically).
+- Optional per section: `sectionStyles` (background/dividers), `isVisible: false` (kept but hidden). Per page: `themeOverride` — only the fields that page differs on, e.g. `{ "hideNavbar": true }` for a landing page.
+
+## ids (after an export)
+
+`export_site_bundle` returns site.json with `id` on every page, section and
+chrome section. They are how `update_site` knows what to change:
+
+| In the file you send | On the site |
+|---|---|
+| entry with a known `id` | updated in place (only what changed); its form submissions, stats and pixels stay attached |
+| entry without `id` | created |
+| stored `id` missing from the file | deleted (pages only with `allowPageRemoval: true`) |
+| `id` the site does not know | error — never silently "new" |
+
+Never copy ids between sites, never invent them, never renumber them.
+
+## Images
+
+In any image field (`images[].url`, `logoUrl`, `features[].image`, …):
+
+- `asset:<file>` — the user's own photo or logo, uploaded with `begin_asset_upload` (PNG/JPG/WebP, ≤ 2 MB each, ≤ 20 files; a custom 3D variant can also take a `.glb` ≤ 10 MB or an `.mp4` ≤ 15 MB). Use this for anything that is *theirs*: logo, storefront, team, products.
+- `__IMG__:<english query>` — a stock photo the platform picks from Unsplash at creation (`__IMG__:cozy coffee shop interior warm light`). Only for mood pictures, never to pretend to be their product or their people.
+- `__ILLU__:<query>` — a platform illustration.
+- A full `https://…` URL the user gave you and has the right to use.
+
+Tell the user which images are stock, so they can replace them with their own.
+
+## Your own sections: `variants[]`
+
+Every section you design is one file, `sections/<key>.astro`, declared once:
+
+```jsonc
+"variants": [
+  { "key": "cta-warung", "sectionType": "cta", "name": "Cta Warung",
+    "description": "Rounded primary band, centred heading, one light pill button.",   // English, what it looks like
+    "mood": ["warm", "bold"] }
+]
+```
+
+- Reference it from any section of that `type` as `"variant": "u:@<key>"`. **One key, many sections**: the cta on Beranda and on Menu, the hero of every inner page — same file, different `content`. The site stays coherent and within the limits (12 new files per upload, 24 own variants per site).
+- The key is lowercase with hyphens and equals the file's basename. `name` is the key in English Title Case.
+- On a website these variants are private: never listed, no marketplace approval. They are checked automatically in the background after each save; a script that is clearly harmful is switched off (the section still renders without it) and the user is emailed — so keep scripts to the section's own interface (variant skill `wvf.md` §4 "Review rule"). After an export, `variants[]` lists the site's own variants and `sections/` holds their files.
+- **Product pages.** `"productLayout"` (top level) picks the layout of every `/product/<slug>` page: `"classic"` (default), `"landing"`, `"minimal"`, or `"u:@<key>"` of a variant with `"sectionType": "product-detail"` (variant skill `wvf.md` §4d — the platform's buy box, gallery and description inside your own markup). `"productLayoutContent"` holds that variant's own fields. Leaving `productLayout` out on `update_site` keeps the site's current layout.
+- **Products: `"sampleProducts"`** (top level, max 8) creates the user's products with the site, ACTIVE — only products, prices and photos the user actually gave you; never invent a price. Fields: `name`, `kind` (`"physical"`, `"digital"`, `"webinar"`, `"event"`, `"donation"`; a course is built in the dashboard), `priceIdr` (whole rupiah), and optionally `slug`, `category`, `description` (markdown), `images` (`asset:<file>` or `https://`; no `__IMG__:` — a product photo must show the product), `weightGram` (required for `physical`, on the product or on every variant), `options` + `variants` (e.g. Ukuran 30ml/50ml: one variant per combination with `optionValues` and its own `priceIdr`), `attributes` (`[{ "name": "Detail", "items": [{ "label": "Bahan", "value": "Katun" }] }]`), `orderVia` (`"whatsapp"` — **`physical` products only**, any other kind is refused because it is delivered by the platform after payment; write a rental or a quoted service as `physical` with `weightGram: 0` — when the user takes that product's orders by WhatsApp chat only — a rental, a negotiated service, a "mulai dari" B2B price: no pay or cart button, checkout refuses it, the page shows only the WhatsApp button, which needs the site's WhatsApp number; leave it out for anything sold at a fixed price, default `"checkout"`; never infer it from the copy — only when the user says so). A downloadable file, stock, a webinar link and payment settings are refused here: the user adds them in the dashboard (Produk). On `update_site` products are UPSERTED by slug: a new slug is created; an existing product is updated in place, keeping its file, stock and on/off state (and its `orderVia` when you leave the key out); products you do not send are untouched, and leaving the key out touches none. The export does not include products (they are managed in the dashboard). **No `"samplePosts"` on a website:** that key (sample articles) belongs to marketplace templates and is refused here with a reason — a website's blog articles are the owner's own writing, never touched by a bundle (the export lists them under `notCarried`).
+  ```jsonc
+  "sampleProducts": [
+    { "name": "Kopi Susu Gula Aren 1L", "kind": "physical", "priceIdr": 85000, "weightGram": 1100,
+      "images": ["asset:kopi-1l.jpg"], "category": "Botolan" }
+  ]
+  ```
+- On `update_site`, send in `variants` ONLY the entries whose file you changed or added, each with its `source`. A `u:@<key>` whose entry you leave out means "the variant this site already has under that key"; a key the site does not have is an error. A changed file under an existing key becomes a new VERSION of that variant, not a new variant.
+
+## Check it
+
+```bash
+npx @webto-id/variant-check site ./my-site                          # the whole folder
+npx @webto-id/variant-check sections/cta-warung.astro --type cta   --content cta-content.json --out preview-cta.html                 # one file, rendered with real content
+```
+
+One line per problem — manifest, every `.astro`, and every section's content,
+e.g. `pages[0].sections[4] (FAQ / default): items: minimal 1 item, ada 0`.
+The `create_site` / `update_site` dry run then re-checks everything
+server-side, including what only the server knows (which variants you own or
+license, your plan's limits, the subdomain).

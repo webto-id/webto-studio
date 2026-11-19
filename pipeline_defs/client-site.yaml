@@ -1,0 +1,91 @@
+name: client-site
+version: 1
+title: Client site from a brief
+summary: >
+  Interview the business (or read the brief the freelancer already has), design
+  a site of its own, create it as a draft, show it, publish it on approval, and
+  hand it over with what the client needs to run it.
+use_when:
+  - "Build a website for <business>"
+  - "Buatkan website untuk klien saya"
+  - A new site where no old site has to be carried over
+bundle: site
+core_skills: [webto-website, html-to-webto-variant]
+optional_skills: [webto-3d-effects]
+orchestration:
+  max_revisions_per_stage: 3
+
+stages:
+  - name: preflight
+    skill: pipelines/shared/preflight-director
+    produces: [preflight]
+    human_approval: false
+    success_criteria:
+      - reports/preflight.json says the token works and lists its scopes
+      - The account has room for one more site, or the user was told it has not
+
+  - name: brief
+    skill: pipelines/client-site/brief-director
+    requires: [preflight]
+    produces: [brief]
+    human_approval: false
+    success_criteria:
+      - Every row of the business type's interview table was asked
+      - Every fact in brief.json has a source of "user" or "document"
+
+  - name: plan
+    skill: pipelines/shared/plan-director
+    requires: [brief]
+    produces: [site_plan, design_direction]
+    human_approval: true
+    approval_shows: Pages, the sections on each, the visual direction, the subdomain
+    success_criteria:
+      - The plan fits the limits get_plan_limits returned
+      - design_direction.json names one design language, not one per section
+
+  - name: build
+    skill: pipelines/shared/build-director
+    requires: [site_plan, design_direction]
+    produces: [bundle, check_report]
+    review: true
+    human_approval: false
+    success_criteria:
+      - "`studio check` reports zero errors on the bundle as it is on disk"
+      - Every preview was looked at, at three widths and in both themes
+
+  - name: draft
+    skill: pipelines/shared/draft-director
+    requires: [bundle, check_report]
+    produces: [lock]
+    human_approval: true
+    approval_shows: The dry-run report of create_site, in the user's language
+    success_criteria:
+      - The dry run returned ok true before the confirmed call
+      - webto.lock.json holds the returned siteId and revision
+
+  - name: verify
+    skill: pipelines/shared/verify-director
+    requires: [lock]
+    produces: [shots, review]
+    review: true
+    human_approval: false
+    success_criteria:
+      - Every page of the real draft was captured at 390, 768 and 1280 px
+      - No horizontal overflow, no broken image, no console error left unexplained
+
+  - name: publish
+    skill: pipelines/shared/publish-director
+    requires: [shots, review]
+    produces: []
+    human_approval: true
+    approval_shows: The preview link and the public address the site will get
+    success_criteria:
+      - The user opened the preview and said yes to this address
+
+  - name: handoff
+    skill: pipelines/shared/handoff-director
+    requires: [lock]
+    produces: [handoff]
+    human_approval: false
+    success_criteria:
+      - handoff.md lists what the agent could not do and where the client does it

@@ -1,0 +1,27 @@
+{
+  "name": "webto-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agentic website development system. Turn your AI coding assistant (Claude Code, Cursor, Codex) into a full website studio: 4 pipelines for client sites, site migrations, sellable templates and 3D landing pages. Astro sections, Tailwind, GSAP, WebGL, three.js. Ships to webto.id.",
+  "keywords": ["ai-agents", "agentic", "claude-code", "cursor", "codex", "mcp", "website-builder", "astro", "tailwindcss", "threejs", "webgl", "gsap", "3d", "landing-page", "website-templates", "vibe-coding"],
+  "repository": { "type": "git", "url": "git+https://github.com/webto-id/webto-studio.git" },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "studio": "node tools/studio.mjs",
+    "setup": "node tools/studio.mjs setup",
+    "setup:browser": "npx playwright install chromium",
+    "preflight": "node tools/studio.mjs preflight",
+    "test": "node --test tests/studio.test.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.6.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

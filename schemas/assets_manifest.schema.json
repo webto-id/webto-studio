@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "assets_manifest",
+  "description": "Every file the bundle ships, with its size and who holds the rights.",
+  "type": "object",
+  "required": ["files"],
+  "properties": {
+    "poster": { "type": "string", "description": "Filename of the image shown behind the 3D section" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "kind", "bytes", "role", "rights"],
+        "properties": {
+          "file": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+          "kind": { "enum": ["image", "model", "video"] },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "rights": { "enum": ["own", "licensed", "generated"] },
+          "made_with": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "design_direction",
+  "description": "One design language for the whole site, decided before any section is written.",
+  "type": "object",
+  "required": ["language", "palette", "fonts", "moves", "avoid"],
+  "properties": {
+    "language": { "type": "string", "minLength": 20, "description": "Two or three sentences a designer would recognise. Not a list of adjectives." },
+    "palette": {
+      "type": "object",
+      "required": ["primary", "background", "foreground"],
+      "properties": {
+        "primary": { "type": "string" },
+        "secondary": { "type": "string" },
+        "accent": { "type": "string" },
+        "background": { "type": "string" },
+        "foreground": { "type": "string" },
+        "dark": { "type": "object" }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "required": ["heading", "body"],
+      "properties": {
+        "heading": { "type": "string", "minLength": 1 },
+        "body": { "type": "string", "minLength": 1 }
+      }
+    },
+    "radius": { "type": "string" },
+    "moves": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 8 },
+      "description": "The recurring moves: how headings are set, the button shape, the image treatment, one or two motifs"
+    },
+    "avoid": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "What this site must not look like"
+    },
+    "references": { "type": "array", "items": { "type": "string" } }
+  }
+}

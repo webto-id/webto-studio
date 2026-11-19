@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "concept",
+  "description": "What is being made and for whom: a template's buyer and angle, or a 3D page's one moment.",
+  "type": "object",
+  "required": ["for_whom", "promise", "differentiator"],
+  "properties": {
+    "working_name": { "type": "string" },
+    "for_whom": { "type": "string", "minLength": 10 },
+    "promise": { "type": "string", "minLength": 10, "description": "What the buyer or visitor gets, in one sentence" },
+    "differentiator": { "type": "string", "minLength": 10, "description": "What sets it apart from what already exists" },
+    "category": { "type": "string" },
+    "pages": { "type": "array", "items": { "type": "string" } },
+    "looked_at": { "type": "array", "items": { "type": "string" }, "description": "Existing templates or sites looked at before deciding" },
+    "three_d": {
+      "type": "object",
+      "description": "landing-3d only",
+      "required": ["recipe", "asset_source", "rights", "fallback"],
+      "properties": {
+        "recipe": { "enum": ["model-glb", "scroll-video", "jar-label", "depth-parallax", "ogl-shader"] },
+        "asset_source": { "type": "string", "minLength": 3 },
+        "rights": { "enum": ["own", "licensed", "generated"] },
+        "fallback": { "type": "string", "minLength": 3, "description": "The poster image every visitor without the effect sees" }
+      }
+    }
+  }
+}
