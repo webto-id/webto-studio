@@ -85,9 +85,11 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
         const base = `${target.label}-${width}${suffix ? `-${suffix}` : ""}`;
         const file = `${base}.png`;
         const fold = `${base}-fold.png`;
-        await page.screenshot({ path: join(outDir, file), fullPage: true }).catch((e) => (loadError ??= e.message.split("\n")[0]));
+        // Transitions are run to their end before each capture: a crossfade caught
+        // halfway shows two phrases on top of each other, which no visitor sees.
+        await page.screenshot({ path: join(outDir, file), fullPage: true, animations: "disabled" }).catch((e) => (loadError ??= e.message.split("\n")[0]));
         // The first screen on its own: what a visitor sees before scrolling, at real size.
-        const foldOk = await page.screenshot({ path: join(outDir, fold), fullPage: false }).then(() => true, () => false);
+        const foldOk = await page.screenshot({ path: join(outDir, fold), fullPage: false, animations: "disabled" }).then(() => true, () => false);
         // A long page shrunk into one image cannot be read, so it is also cut into
         // parts a reader can open at real size.
         const parts = [];
@@ -98,7 +100,7 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
           for (let y = 0, i = 1; y < height; y += seg, i++) {
             const part = `${base}-part-${i}.png`;
             const ok = await page
-              .screenshot({ path: join(outDir, part), fullPage: true, clip: { x: 0, y, width, height: Math.min(seg, height - y) } })
+              .screenshot({ path: join(outDir, part), fullPage: true, animations: "disabled", clip: { x: 0, y, width, height: Math.min(seg, height - y) } })
               .then(() => true, () => false);
             if (ok) parts.push(`shots/${part}`);
           }

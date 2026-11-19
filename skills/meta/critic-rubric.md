@@ -24,7 +24,11 @@ understands at once, and that works on a phone in one hand.
   by that much), `brokenImages`, `consoleErrors`, `title`, `loadError`.
 
 Screenshots are stills: you cannot see how motion feels. Leave it out of the
-score and list it in `not_judged`. Do not assume it is good.
+score and list it in `not_judged`. Do not assume it is good. CSS transitions
+are run to their end before each capture, but a script-driven effect can
+still be caught halfway: two faded phrases or images on top of each other in
+a spot that changes over time (a rotating word, a slider) are a frame between
+states. Do not score or fix them; list them in `not_judged`.
 
 ## Before you score
 
