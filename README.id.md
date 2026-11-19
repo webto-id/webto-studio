@@ -74,6 +74,21 @@ tools/                preflight, check, checkpoint, tangkapan layar, pembaca sit
 projects/             pekerjaan Anda, satu folder per situs (tidak dilacak git)
 ```
 
+Dua hal yang menjaga permintaan satu kalimat tidak berakhir menjadi situs
+pasaran:
+
+- **Konsep sebelum desain.** Agen hanya menanyakan fakta kepada Anda, lalu
+  menulis tiga ide yang diambil dari dunia usaha itu sendiri (namanya,
+  bidangnya, jalannya, cara kerjanya, momen pelanggannya), membuang ide yang
+  sama cocoknya untuk usaha lain, dan memeriksa setiap bagian desain
+  terhadap apa yang akan dibuat model generik. Ide terpilih dan dua
+  lainnya tampil di gerbang rencana.
+- **Kritikus buta.** Setelah draft ada di platform, agen baru yang tidak
+  pernah melihat rencana maupun kodenya menilai halaman sungguhan hanya dari
+  tangkapan layar: desain, kemudahan pakai, kekhasan, dan isi. Daftar
+  perbaikannya menjadi pekerjaan agen pembuat sampai situs mencapai ambang,
+  atau Anda menerimanya apa adanya.
+
 Tiga hal yang menjaga agen tetap jujur:
 
 - **Gerbang persetujuan.** Rencana, penulisan pertama ke akun Anda,
@@ -165,6 +180,12 @@ server MCP lewat HTTP. Berkas penunjuk tersedia untuk Claude Code
 GitHub Copilot (`.github/copilot-instructions.md`), dan Windsurf
 (`.windsurfrules`). Server MCP diatur di `.mcp.json`; bila agen Anda menyimpan
 pengaturan MCP di tempat lain, salin entrinya ke sana.
+
+## Ucapan terima kasih
+
+Metode konsep dan kritikus buta diadaptasi dari
+[juliobsz/skills](https://github.com/juliobsz/skills) (MIT), disesuaikan untuk
+situs usaha yang dibangun dengan format section platform.
 
 ## Lisensi
 

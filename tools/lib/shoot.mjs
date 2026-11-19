@@ -7,6 +7,8 @@ import { StudioError, now, writeJson } from "./core.mjs";
 import { loadProject } from "./pipelines.mjs";
 
 const DEFAULT_WIDTHS = [390, 768, 1280];
+const VIEW_HEIGHT = 900;
+const MAX_PARTS = 12;
 
 function parsePages(pages, urls) {
   const out = [];
@@ -48,7 +50,7 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
     for (const target of targets) {
       for (const width of sizes) {
         const context = await browser.newContext({
-          viewport: { width, height: 900 },
+          viewport: { width, height: VIEW_HEIGHT },
           colorScheme: dark ? "dark" : "light",
           reducedMotion: reducedMotion ? "reduce" : "no-preference",
         });
@@ -80,17 +82,39 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
             title: document.title,
           };
         }).catch(() => ({ overflowPx: null, brokenImages: [], title: "" }));
-        const file = `${target.label}-${width}${suffix ? `-${suffix}` : ""}.png`;
+        const base = `${target.label}-${width}${suffix ? `-${suffix}` : ""}`;
+        const file = `${base}.png`;
+        const fold = `${base}-fold.png`;
         await page.screenshot({ path: join(outDir, file), fullPage: true }).catch((e) => (loadError ??= e.message.split("\n")[0]));
+        // The first screen on its own: what a visitor sees before scrolling, at real size.
+        const foldOk = await page.screenshot({ path: join(outDir, fold), fullPage: false }).then(() => true, () => false);
+        // A long page shrunk into one image cannot be read, so it is also cut into
+        // parts a reader can open at real size.
+        const parts = [];
+        const height = await page.evaluate(() => document.documentElement.scrollHeight).catch(() => 0);
+        // Parts grow on a very long page, so the whole page is always covered.
+        const seg = Math.max(Math.round(VIEW_HEIGHT * 1.5), Math.ceil(height / MAX_PARTS));
+        if (height > VIEW_HEIGHT * 2) {
+          for (let y = 0, i = 1; y < height; y += seg, i++) {
+            const part = `${base}-part-${i}.png`;
+            const ok = await page
+              .screenshot({ path: join(outDir, part), fullPage: true, clip: { x: 0, y, width, height: Math.min(seg, height - y) } })
+              .then(() => true, () => false);
+            if (ok) parts.push(`shots/${part}`);
+          }
+        }
         const u = new URL(target.url);
         shots.push({
           label: target.label,
           // Query strings are left out: preview links carry a signed token.
           page: u.protocol === "file:" ? u.pathname.split("/").pop() : u.origin + u.pathname,
+          ...(u.protocol === "file:" ? { local: true } : {}),
           width,
           scheme: dark ? "dark" : "light",
           reducedMotion,
           file: `shots/${file}`,
+          ...(foldOk ? { fold: `shots/${fold}` } : {}),
+          ...(parts.length ? { parts } : {}),
           ...measured,
           consoleErrors: [...new Set(consoleErrors)].slice(0, 10),
           ...(loadError ? { loadError } : {}),

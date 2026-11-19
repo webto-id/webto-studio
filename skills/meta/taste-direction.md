@@ -4,6 +4,13 @@ The difference between a site a client pays for and one they shrug at is
 almost never the code. It is whether the site looks like it was made for this
 business. This file is how you decide a direction before writing a section.
 
+## Concept first
+
+Read `skills/meta/concept.md` and write the `concept` block before anything
+else in `design_direction.json`. Everything below is derived from the chosen
+concept's decisions: a direction that does not follow from the concept is two
+designs fighting.
+
 ## Decide from the business, not from habit
 
 Write down, in `design_direction.json`:
@@ -23,7 +30,8 @@ Write down, in `design_direction.json`:
   light and tinted sections, one or two motifs.
 - **`avoid`**: what this site must not look like. Name the cliché of the
   category (the stock handshake for a law firm, the blue gradient for a
-  clinic) and stay away from it.
+  clinic) and the generic-model defaults listed in `concept.md` that this
+  category tempts, and stay away from them.
 
 ## Tests before you build
 
@@ -45,7 +53,8 @@ Write down, in `design_direction.json`:
 
 ## For a client
 
-Show the direction in the plan gate as two or three sentences plus the
+Show the concept in one sentence (with the two alternatives in a line each,
+as `concept.md` says), then the direction in two or three sentences plus the
 palette and fonts, in their language. Clients cannot judge a JSON file, but
 they know at once whether "warm and hand-made" is their shop.
 

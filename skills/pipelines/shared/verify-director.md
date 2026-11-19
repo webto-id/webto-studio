@@ -7,6 +7,7 @@ the real navigation, the real images.
 ## Read first
 
 - `skills/meta/reviewer.md`
+- `skills/meta/critic.md`
 
 ## Do
 
@@ -40,7 +41,14 @@ the real navigation, the real images.
    run, then confirm; a fix the user already approved in kind needs no new
    gate, a change to content or structure does). Save the new lock and
    capture again.
-7. **Write `review/verify.json`.**
+7. **The blind critic.** Once your own findings are fixed and every run is
+   captured, follow `skills/meta/critic.md`: `studio critic <project>`, a
+   fresh agent with that brief only, then `studio critic <project> --result`.
+   Work through its fixes the way step 6 describes, capture every run again,
+   and run a new pass with a new critic, until the latest pass meets the
+   pipeline's `quality_bar` or the passes run out and the user decides.
+8. **Write `review/verify.json`**, including the critic's readings where
+   they did not match the brief or the concept.
 
 In `template-for-sale` the thing on the platform is a template draft: fixes
 go through `update_template_draft`, as the template draft director
@@ -54,3 +62,7 @@ tell the user they must look at the preview themselves before publishing.
 ```bash
 node tools/studio.mjs checkpoint <project> verify
 ```
+
+Add `--below-bar "<what the user said>"` only when the user accepted a site
+under the bar. When you report, give the critic's last overall and say
+whether it was independent.

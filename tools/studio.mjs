@@ -21,7 +21,9 @@ const HELP = `webto-studio
   new <project> --pipeline <name> [--title "..."]
   status <project>                        which stage is next and what it needs
   check <project> [--strict]              compile the bundle with the platform's validator
-  checkpoint <project> <stage> [--approved "<what the user said>"] [--note "..."]
+  checkpoint <project> <stage> [--approved "<what the user said>"] [--below-bar "<what the user said>"] [--note "..."]
+  critic <project>                        the brief for a fresh critic agent: only the screenshots, never the plan
+  critic <project> --result               the latest critique: weighted score, the bar, the fixes
   log <project> "<decision>"              add a line to the decision log
   shoot <project> --page <label>=<url> [--page ...] [--widths 390,768,1280] [--dark] [--reduced-motion] [--tag <name>]
   crawl <project> <url> --authorized [--max 20] [--render]
@@ -104,9 +106,40 @@ const commands = {
 
   async checkpoint({ _: [slug, stage], flags }) {
     if (!stage) throw new StudioError("Usage: checkpoint <project> <stage>");
-    const { checkpoint, next } = writeCheckpoint(slug, stage, { approved: flags.approved, note: flags.note });
+    const { checkpoint, next, warnings } = writeCheckpoint(slug, stage, { approved: flags.approved, note: flags.note, belowBar: flags["below-bar"] });
     out(`Checkpoint written: ${stage} (revision ${checkpoint.revision}).`);
+    for (const w of warnings) out(`Note: ${w}`);
     out(next ? `Next stage: ${next.name}. Read skills/${next.skill}.md` : "That was the last stage.");
+  },
+
+  async critic({ _: [slug], flags }) {
+    const { dir, meta } = loadProject(slug);
+    const pipeline = loadPipeline(meta.pipeline);
+    const { criticBrief, judgeCritique } = await import("./lib/critic.mjs");
+    if (flags.result === true) {
+      const r = judgeCritique(dir, pipeline);
+      if (!r.data?.scores) {
+        out(r.problems.join("\n"));
+        process.exitCode = 1;
+        return;
+      }
+      const d = r.data;
+      out(`Critique pass ${r.last.n} (${d.critic === "self" ? "self-score, not independent" : "independent critic"})`);
+      out(`  Read as: ${d.business_read}`);
+      out(`  Idea as read: ${d.idea_read}`);
+      for (const [k, v] of Object.entries(d.scores)) out(`  ${k.padEnd(16)} ${v.score}`);
+      if (r.summary) out(`  overall          ${r.summary.overall}   (bar ${r.bar.overall}, each at least ${r.bar.min}: ${r.summary.met ? "met" : "NOT met"})`);
+      out(`Fixes, most score first:`);
+      d.fixes.forEach((f, i) => out(`  ${i + 1}. [${f.criterion}] ${f.file}: ${f.what} -> ${f.change}`));
+      if (d.not_judged?.length) out(`Not judged: ${d.not_judged.join("; ")}`);
+      for (const p of r.problems) out(`PROBLEM: ${p}`);
+      out("Compare the two readings with brief.json and the concept. Where they differ, the site is not saying it: fix the site.");
+      return;
+    }
+    const b = criticBrief(dir, pipeline);
+    out(`Critic pass ${b.n} of at most ${b.max}. Give the text between the lines to a fresh agent, and nothing else: not the brief, the plan, the design direction, the code, earlier scores or your opinion.`);
+    out(`-----\n${b.text}\n-----`);
+    out(`When it is done: node tools/studio.mjs critic ${slug} --result`);
   },
 
   async log({ _: [slug, ...words] }) {

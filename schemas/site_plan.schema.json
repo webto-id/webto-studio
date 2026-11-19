@@ -21,11 +21,12 @@
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["type", "variant", "purpose"],
+              "required": ["type", "variant", "purpose", "layout"],
               "properties": {
                 "type": { "type": "string", "minLength": 1 },
                 "variant": { "type": "string", "minLength": 1, "description": "A key from `variants`, or a platform variant name for the few exceptions" },
-                "purpose": { "type": "string", "minLength": 1 }
+                "purpose": { "type": "string", "minLength": 1 },
+                "layout": { "type": "string", "minLength": 3, "description": "The section's layout family (split, full-bleed image, index list, ...). Neighbours on a page differ" }
               }
             }
           }

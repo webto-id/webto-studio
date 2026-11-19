@@ -33,6 +33,9 @@ shots:
 review:
   path: "review/{stage}.json"
   schema: review
+critique:
+  path: critique # critique/pass-<n>.json, the latest pass counts
+  schema: critique
 listing:
   path: listing.json
   schema: listing

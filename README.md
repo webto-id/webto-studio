@@ -76,6 +76,20 @@ tools/                preflight, check, checkpoint, screenshots, old-site reader
 projects/             your work, one folder per site (not tracked by git)
 ```
 
+Two things keep a one-line request from turning into a generic site:
+
+- **A concept before any design.** The agent asks you only for facts, then
+  writes three ideas taken from the business's own world (its name, its
+  trade, its street, how it works, its customer's moment), drops any that
+  would fit another business just as well, and checks each part of the
+  design against what a generic model would have done. You see the chosen
+  idea and the two others at the plan gate.
+- **A blind critic.** After the draft is on the platform, a fresh agent that
+  never saw the plan or the code scores the real pages from screenshots
+  alone, on design, usability, distinctiveness and content. Its fix list is
+  the builder's work until the site reaches the bar, or you accept it as it
+  is.
+
 Three things keep the agent honest:
 
 - **Approval gates.** The plan, the first write to your account, publishing
@@ -173,6 +187,12 @@ node tools/studio.mjs help    # every command
 
 `skills/core/` is copied from the platform's repository and is not edited
 here. Everything that names the platform lives in `platform.config.json`.
+
+## Acknowledgements
+
+The concept method and the blind critic are adapted from
+[juliobsz/skills](https://github.com/juliobsz/skills) (MIT), retuned for
+business sites built in the platform's section format.
 
 ## Licence
 

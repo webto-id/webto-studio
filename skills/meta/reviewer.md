@@ -47,9 +47,17 @@ see. Write it after the work, from what you actually opened.
 **Design**
 - A section that does not follow `design_direction.json`: another button
   shape, another heading style, a colour outside the palette.
-- Anything on the `avoid` list.
+- A section where the concept has gone missing (it often survives the hero
+  and dies by the third section), or a layout that differs from the plan's.
+- Anything on the `avoid` list, or a generic-model default from
+  `skills/meta/concept.md`.
 - A page that reads as a stack of unrelated blocks. Read
   `skills/meta/taste-direction.md` again if it does.
+
+**The critic's reading** (verify only)
+- The critic's `business_read` misses what, where or how to act that
+  `brief.json` holds, or its `idea_read` is not the concept in
+  `design_direction.json`. That is a `should`: the site is not saying it.
 
 **Editing**
 - Text the owner cannot change in the editor. The validator reports

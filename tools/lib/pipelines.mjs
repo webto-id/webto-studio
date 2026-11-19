@@ -4,6 +4,7 @@ import { join } from "node:path";
 import Ajv from "ajv";
 import YAML from "yaml";
 import { ROOT, SLUG_RE, StudioError, hashBundle, now, projectsDir, readJson, writeJson } from "./core.mjs";
+import { judgeCritique } from "./critic.mjs";
 
 const DEFS = join(ROOT, "pipeline_defs");
 const SCHEMAS = join(ROOT, "schemas");
@@ -93,8 +94,53 @@ function validator(schemaName) {
   return ajv.compile(readJson(join(SCHEMAS, `${schemaName}.schema.json`)));
 }
 
-function checkArtifact(dir, pipeline, name, stage, problems) {
+const GENERIC_PARTS = ["first_screen", "palette", "type", "layout", "imagery"];
+
+function conceptProblems(rel, c, problems) {
+  const candidates = c.candidates ?? [];
+  const territories = candidates.map((x) => x.territory);
+  if (new Set(territories).size < territories.length) {
+    problems.push(`${rel}: the three concepts must come from three different territories, got ${territories.join(", ")}`);
+  }
+  const chosen = candidates.find((x) => x.name === c.chosen);
+  if (!chosen) problems.push(`${rel}: concept.chosen "${c.chosen}" is not the name of one of the candidates`);
+  else if (chosen.scores?.portability >= 4) {
+    problems.push(`${rel}: the chosen concept scores ${chosen.scores.portability} on portability, so it would work for another business: it is a style, not a concept. Find an anchor in this business`);
+  }
+  const parts = new Set((c.generic_check ?? []).map((g) => g.part));
+  for (const p of GENERIC_PARTS) if (!parts.has(p)) problems.push(`${rel}: concept.generic_check has no entry for "${p}"`);
+  for (const g of c.generic_check ?? []) {
+    if (g.generic && String(g.change ?? "").trim().length < 8) {
+      problems.push(`${rel}: concept.generic_check says "${g.part}" is where a generic model would land, and names no change. Change it and write what you changed`);
+    }
+  }
+}
+
+const CHROME_TYPES = new Set(["navbar", "header", "footer"]);
+
+function layoutProblems(rel, plan, problems) {
+  for (const page of plan.pages ?? []) {
+    let prev = null;
+    for (const s of page.sections ?? []) {
+      if (CHROME_TYPES.has(s.type)) continue;
+      const layout = String(s.layout ?? "").trim().toLowerCase();
+      if (prev && layout && layout === prev) {
+        problems.push(`${rel}: on page "${page.title}", two sections in a row use the layout "${s.layout}". Neighbours get different layouts`);
+      }
+      prev = layout;
+    }
+  }
+}
+
+function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
   const { def, rel, abs } = artifactPath(dir, pipeline, name, stage);
+  if (name === "critique") {
+    const r = judgeCritique(dir, pipeline, { belowBar: opts.belowBar });
+    problems.push(...r.problems);
+    opts.warnings?.push(...r.warnings);
+    if (r.summary) opts.critique = r.summary;
+    return r.last ? { name, path: r.last.file } : null;
+  }
   if (!existsSync(abs)) {
     problems.push(`Missing artifact "${name}": ${rel}`);
     return null;
@@ -114,6 +160,8 @@ function checkArtifact(dir, pipeline, name, stage, problems) {
       for (const err of validate.errors.slice(0, 8)) problems.push(`${rel}${err.instancePath || ""}: ${err.message}`);
     }
   }
+  if (name === "design_direction" && data?.concept) conceptProblems(rel, data.concept, problems);
+  if (name === "site_plan" && data) layoutProblems(rel, data, problems);
   if (name === "brief" && Array.isArray(data?.open_questions) && data.open_questions.length > 0) {
     problems.push(`${rel}: ${data.open_questions.length} open question(s) left. Ask the user, or move them to "declined" if they chose not to answer`);
   }
@@ -157,7 +205,7 @@ function checkArtifact(dir, pipeline, name, stage, problems) {
  * an artifact is missing or invalid, the self-review did not pass, or a gated
  * stage carries no approval from the user.
  */
-export function writeCheckpoint(slug, stageName, { approved, note } = {}) {
+export function writeCheckpoint(slug, stageName, { approved, note, belowBar } = {}) {
   const { dir, meta } = loadProject(slug);
   const pipeline = loadPipeline(meta.pipeline);
   const states = stageStates(dir, pipeline);
@@ -169,10 +217,11 @@ export function writeCheckpoint(slug, stageName, { approved, note } = {}) {
   const pending = states.slice(0, idx).filter((s) => s.state !== "done");
   if (pending.length) problems.push(`Earlier stage(s) not checkpointed: ${pending.map((s) => `${s.stage.name} (${s.state})`).join(", ")}`);
 
+  const opts = { belowBar, warnings: [] };
   for (const name of stage.requires) checkArtifact(dir, pipeline, name, stageName, problems);
   const artifacts = [];
   for (const name of new Set([...stage.produces, ...(stage.review ? ["review"] : [])])) {
-    const a = checkArtifact(dir, pipeline, name, stageName, problems);
+    const a = checkArtifact(dir, pipeline, name, stageName, problems, opts);
     if (a) artifacts.push(a);
   }
 
@@ -197,10 +246,17 @@ export function writeCheckpoint(slug, stageName, { approved, note } = {}) {
     at: now(),
     approval: stage.human_approval ? { quote, at: now() } : null,
     artifacts,
+    ...(opts.critique ? { critique: opts.critique } : {}),
     ...(note ? { note: String(note) } : {}),
   };
   writeJson(join(dir, "checkpoints", `${stageName}.json`), checkpoint);
-  logDecision(dir, { kind: "checkpoint", stage: stageName, revision, ...(quote ? { approval: quote } : {}) });
+  logDecision(dir, {
+    kind: "checkpoint",
+    stage: stageName,
+    revision,
+    ...(quote ? { approval: quote } : {}),
+    ...(opts.critique ? { critique: opts.critique } : {}),
+  });
   const next = states[idx + 1]?.stage ?? null;
-  return { checkpoint, next };
+  return { checkpoint, next, warnings: opts.warnings };
 }

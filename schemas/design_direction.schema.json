@@ -3,8 +3,75 @@
   "title": "design_direction",
   "description": "One design language for the whole site, decided before any section is written.",
   "type": "object",
-  "required": ["language", "palette", "fonts", "moves", "avoid"],
+  "required": ["concept", "language", "palette", "fonts", "moves", "avoid"],
   "properties": {
+    "concept": {
+      "type": "object",
+      "description": "The idea the direction is derived from. See skills/meta/concept.md",
+      "required": ["candidates", "chosen", "why", "idea", "anchor", "signature", "motion", "first_screen", "generic_check"],
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["name", "territory", "idea", "anchor", "anchor_source", "decisions", "swap_test", "scores"],
+            "properties": {
+              "name": { "type": "string", "minLength": 2 },
+              "territory": { "enum": ["name", "trade", "place", "process", "customer", "system"] },
+              "idea": { "type": "string", "minLength": 20, "description": "One sentence a stranger understands" },
+              "anchor": { "type": "string", "minLength": 5, "description": "The specific fact about this business the idea depends on" },
+              "anchor_source": { "enum": ["brief", "inventory", "name", "place", "category"], "description": "Where the anchor comes from. Never invented" },
+              "decisions": {
+                "type": "object",
+                "required": ["layout", "type", "colour", "imagery", "signature"],
+                "properties": {
+                  "layout": { "type": "string", "minLength": 3 },
+                  "type": { "type": "string", "minLength": 3 },
+                  "colour": { "type": "string", "minLength": 3 },
+                  "imagery": { "type": "string", "minLength": 3 },
+                  "signature": { "type": "string", "minLength": 3 }
+                }
+              },
+              "swap_test": { "type": "string", "minLength": 10, "description": "What happens to the sentence when another business of the same kind is put in it" },
+              "scores": {
+                "type": "object",
+                "required": ["originality", "fit", "feasibility", "portability"],
+                "properties": {
+                  "originality": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "fit": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "feasibility": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "portability": { "type": "integer", "minimum": 1, "maximum": 5, "description": "Could it be moved to another business? Lower is better" }
+                }
+              }
+            }
+          }
+        },
+        "chosen": { "type": "string", "minLength": 2, "description": "The name of one candidate" },
+        "why": { "type": "string", "minLength": 10 },
+        "idea": { "type": "string", "minLength": 20 },
+        "anchor": { "type": "string", "minLength": 5 },
+        "signature": { "type": "string", "minLength": 10, "description": "The one moment, and the section that carries it" },
+        "motion": { "type": "string", "minLength": 3, "description": "How things move here, in a verb, or \"still\" with the reason" },
+        "first_screen": { "type": "string", "minLength": 20, "description": "What the first screen shows at 390 and at 1280 px" },
+        "borrowed": { "type": "string", "description": "A detail taken from a runner-up, and where it goes" },
+        "keeps": { "type": "string", "description": "What the client's existing identity fixes (logo, colours), when it does" },
+        "generic_check": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "object",
+            "required": ["part", "generic"],
+            "properties": {
+              "part": { "enum": ["first_screen", "palette", "type", "layout", "imagery", "copy", "chrome"] },
+              "generic": { "type": "boolean", "description": "Would a generic model have landed here?" },
+              "change": { "type": "string", "description": "What you changed, when it was generic" }
+            }
+          }
+        }
+      }
+    },
     "language": { "type": "string", "minLength": 20, "description": "Two or three sentences a designer would recognise. Not a list of adjectives." },
     "palette": {
       "type": "object",

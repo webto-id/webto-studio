@@ -14,6 +14,12 @@ core_skills: [webto-website, html-to-webto-variant]
 optional_skills: [webto-3d-effects]
 orchestration:
   max_revisions_per_stage: 3
+# The blind critic's bar for the verify stage (skills/meta/critic.md). Tentative:
+# tuned once the before/after eval has run.
+quality_bar:
+  overall: 7
+  min: 6
+  max_passes: 3
 
 stages:
   - name: preflight
@@ -43,6 +49,7 @@ stages:
     success_criteria:
       - Every old page is mapped to a new page or listed as dropped, with the reason
       - The plan fits the limits get_plan_limits returned
+      - The concept in design_direction.json was chosen from three, is anchored in a fact about this business (or buyer), and passed the generic check
 
   - name: build
     skill: pipelines/shared/build-director
@@ -67,10 +74,11 @@ stages:
     skill: pipelines/shared/verify-director
     extra_skills: [pipelines/site-migration/parity-director]
     requires: [lock]
-    produces: [shots, review]
+    produces: [shots, critique, review]
     review: true
     human_approval: false
     success_criteria:
+      - A fresh critic that saw only the screenshots scored the current ones at the quality bar, or the user accepted the site under it
       - Every page of the real draft was captured at 390, 768 and 1280 px
       - Each old page was compared with its new page for missing content
 

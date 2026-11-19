@@ -8,6 +8,7 @@ effect converts nobody.
 
 - `skills/core/webto-3d-effects/SKILL.md` and `references/recipes.md`
 - `skills/core/html-to-webto-variant/references/webgl.md`
+- `skills/meta/concept.md`
 - `skills/meta/taste-direction.md`
 - `skills/core/webto-website/references/interview.md`, the core questions
 
@@ -39,16 +40,19 @@ effect converts nobody.
 4. **Name the fallback** (`fallback`): the poster image shown in the editor,
    in thumbnails, to visitors who ask for reduced motion, and while the
    effect loads. The page must make sense with only the poster.
-5. **Set the direction** (`design_direction.json`). The rest of the page is
-   quiet so the one moment lands: restrained palette, generous space, type
-   that does not compete.
+5. **Set the direction** (`design_direction.json`). Its `concept` block
+   comes first, following `skills/meta/concept.md`: the 3D moment is the
+   signature, and the three candidates are three ideas for how the page
+   frames it. The rest of the page is quiet so the one moment lands:
+   restrained palette, generous space, type that does not compete.
 6. **One 3D section per page.** Everything else is ordinary sections.
 
 ## The gate
 
-Show the user: the page's job, the recipe in plain words ("the bottle turns
-as you scroll"), where the model or footage comes from, what visitors
-without the effect see, and the look. Ask whether to go on. Wait.
+Show the user: the page's job, the concept in one sentence (and the other two
+in a line each), the recipe in plain words ("the bottle turns as you
+scroll"), where the model or footage comes from, what visitors without the
+effect see, and the look. Ask whether to go on. Wait.
 
 ## Done
 

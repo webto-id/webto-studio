@@ -100,13 +100,19 @@ redone three times. After that, stop and ask the user how to proceed.
    client holds the rights. Read `skills/meta/images.md` before generating:
    a generated image never stands in for the business's real people, place,
    product or work, and generating on the user's key needs their yes first.
-7. **Every section is designed.** Author each section as a WVF variant under
-   one design direction, following `skills/core/html-to-webto-variant`. Do not
-   assemble a site from platform catalog sections, except where the core skill
-   names an exception.
-8. **Look before you report.** A passing validator does not mean the page
-   looks right. Capture the real pages with `studio shoot` and open the
-   images. Without a browser, say so, and list the check as not done.
+7. **Every section is designed, from one concept.** A short request is not a
+   reason for a generic site. Ask the user for facts; decide the design
+   yourself. Before the direction, choose a concept from three, anchored in
+   this business (`skills/meta/concept.md`), and show it at the plan gate.
+   Author each section as a WVF variant under that one direction, following
+   `skills/core/html-to-webto-variant`. Do not assemble a site from platform
+   catalog sections, except where the core skill names an exception.
+8. **Look before you report, then let someone else look.** A passing
+   validator does not mean the page looks right. Capture the real pages with
+   `studio shoot` and open the images. Then a fresh critic agent that sees
+   only the screenshots scores them (`skills/meta/critic.md`); its fixes are
+   your work until the site meets the bar. Without a browser, say so, and
+   list the check as not done.
 9. **A Blender connection is the user's open Blender.** Ask before the first
    use, work in your own collection, never touch or save their work, and
    reserve every generated model inside a budget they approved. Read
@@ -132,6 +138,7 @@ projects/<project>/
   reports/                preflight.json, check.json
   review/<stage>.json     your own review of a stage
   shots/                  screenshots and shots/index.json
+  critique/pass-<n>.json  the blind critic's scores, written by the critic
   checkpoints/<stage>.json
   listing.json            template-for-sale
   handoff.md              what the client or seller gets
@@ -153,7 +160,8 @@ All through `node tools/studio.mjs <command>`:
 | `check <project> [--strict]` | Compiles the bundle with the platform's validator and writes `reports/check.json`. Templates are always strict |
 | `checkpoint <project> <stage>` | Records a finished stage, or refuses with the reasons |
 | `log <project> "<text>"` | Appends a decision |
-| `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
+| `critic <project>` | Prints the brief for a fresh critic agent: the rubric and the screenshots, nothing of the plan. `--result` shows the latest pass against the bar |
+| `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, whole page and first screen, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |
 | `stock <project> --query "..."` | Searches Unsplash, Pexels or Pixabay with the user's free key (from `.env`) and saves previews to `reports/stock/`. `--orientation`, `--provider`, `--count` |
 | `stock-use <project> --pick <n> [--out <file>]` | Takes one photo of the last search into the site the way its library requires, and records the credit in `stock_images.json` |
@@ -175,12 +183,17 @@ listings).
 |---|---|---|
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
-| Meta | `skills/meta/*` | Onboarding, self-review, gates, taste, images, Blender |
+| Meta | `skills/meta/*` | Onboarding, concept, taste, self-review, the blind critic, gates, images, Blender |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 
 When a director and a core skill disagree about the platform's format or
 limits, the core skill is right. When they disagree about the order of work,
 the pipeline is right.
+
+Design or website skills installed elsewhere on this machine (your own, or
+your agent's global ones) do not apply inside this folder: they assume a
+framework, a build and a host of their own. If one triggers, the pipeline
+still decides the stack, the stages and the gates.
 
 ## What you cannot do, and what to say
 

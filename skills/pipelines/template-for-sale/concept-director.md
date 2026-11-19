@@ -5,6 +5,7 @@ already exist. A template with no buyer in mind sells to nobody.
 
 ## Read first
 
+- `skills/meta/concept.md`
 - `skills/meta/taste-direction.md`
 - `skills/core/html-to-webto-template/SKILL.md`, "Quality bar" and "Hard limits"
 - `skills/core/html-to-webto-template/references/manifest.md`, the listing
@@ -28,11 +29,15 @@ already exist. A template with no buyer in mind sells to nobody.
    - `category`: one of the platform's categories, exactly as listed;
    - `pages`: at most eight, one of them the home page;
    - `working_name`: short, fit for a catalog card.
-4. **Set the direction** (`design_direction.json`). A template is used with
-   other people's content, so choose moves that survive longer names, fewer
-   photos and no logo.
-5. **Plan the sections** (`site_plan.json`): for each page, its sections and
-   their purpose, and in `variants` each distinct design once. Reuse a design
+4. **Set the direction** (`design_direction.json`). Its `concept` block
+   comes first, following `skills/meta/concept.md`: three candidates anchored
+   in the buyer's category (`anchor_source: "category"`), one chosen, the
+   generic check done. The sameness you noted in step 2 is what the generic
+   check tests against. A template is used with other people's content, so
+   choose moves that survive longer names, fewer photos and no logo.
+5. **Plan the sections** (`site_plan.json`): for each page, its sections,
+   their purpose and their `layout` (neighbours differ), and in `variants`
+   each distinct design once. Reuse a design
    across pages. Keep the pages and the count of distinct designs inside the
    template limits in the core skill, and record that in `limits`. A template
    has no subdomain.
@@ -42,8 +47,9 @@ already exist. A template with no buyer in mind sells to nobody.
 
 ## The gate
 
-Show the user: the buyer, the promise, what sets it apart, the pages, the
-look in two or three sentences, and the working name. Ask whether to build
+Show the user: the buyer, the promise, what sets it apart, the concept in one
+sentence (and the other two in a line each), the pages, the look in two or
+three sentences, and the working name. Ask whether to build
 it. Wait.
 
 ## Done

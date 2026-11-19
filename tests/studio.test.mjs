@@ -27,16 +27,46 @@ const brief = (extra = {}) => ({
   ...extra,
 });
 const plan = () => ({
-  pages: [{ title: "Beranda", slug: "", sections: [{ type: "hero", variant: "hero-warung", purpose: "Say what the place is" }] }],
+  pages: [{ title: "Beranda", slug: "", sections: [{ type: "hero", variant: "hero-warung", purpose: "Say what the place is", layout: "type over full-bleed photo" }] }],
   variants: [{ key: "hero-warung", sectionType: "hero" }],
   limits: { checked_at: "2026-11-19T00:00:00Z", fits: true },
 });
-const direction = () => ({
+const candidate = (name, territory, portability = 2) => ({
+  name,
+  territory,
+  idea: `The site as ${name}, taken from the warung's own evening`,
+  anchor: "Opens at dusk on Jl. Contoh",
+  anchor_source: "brief",
+  decisions: { layout: "one long evening", type: "hand-set serif", colour: "dusk to night", imagery: "snapshots", signature: "the sky darkens on scroll" },
+  swap_test: "Another warung that opens at noon loses the whole idea",
+  scores: { originality: 4, fit: 5, feasibility: 4, portability },
+});
+const concept = (extra = {}) => ({
+  candidates: [candidate("Senja", "name"), candidate("Papan harga", "place"), candidate("Satu nota", "system")],
+  chosen: "Senja",
+  why: "The name and the opening hour are the same fact",
+  idea: "The site is one evening at the warung, from dusk to closing",
+  anchor: "Opens at dusk on Jl. Contoh",
+  signature: "hero-warung: the sky darkens as you scroll",
+  motion: "settle, like the light going down",
+  first_screen: "The name set large against a dusk sky, the WhatsApp order button under it, at 390 and 1280",
+  generic_check: [
+    { part: "first_screen", generic: true, change: "No centred headline over a dim photo; the name is the sky" },
+    { part: "palette", generic: false },
+    { part: "type", generic: false },
+    { part: "layout", generic: false },
+    { part: "imagery", generic: false },
+  ],
+  ...extra,
+});
+const direction = (extra = {}) => ({
+  concept: concept(),
   language: "Warm paper tones, hand-set headings, photos tilted a few degrees like snapshots on a counter.",
   palette: { primary: "#b45309", background: "#fffbeb", foreground: "#1c1917" },
   fonts: { heading: "Fraunces", body: "Inter" },
   moves: ["Headings in a serif with tight leading", "Photos tilted two degrees with a soft shadow"],
   avoid: ["A corporate blue gradient hero"],
+  ...extra,
 });
 const review = (stage, extra = {}) => ({ stage, looked_at: ["preview-hero-warung.html"], findings: [], checks_not_done: [], verdict: "pass", ...extra });
 
@@ -492,4 +522,164 @@ test("the assets stage checks files, licences and generated models against the b
 test("robots.txt rules for every crawler are read, others ignored", () => {
   assert.deepEqual(parseRobots("User-agent: Googlebot\nDisallow: /a\n\nUser-agent: *\nDisallow: /private/ # x\nDisallow:\nAllow: /\n"), ["/private/"]);
   assert.equal(decodeEntities("A &amp; B &#8211; &#x26;"), "A & B – &");
+});
+
+// ── concept and composition ───────────────────────────────────────────────
+function toPlanGate(dd, sp = plan()) {
+  writeJson(join(dir, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(slug, "preflight");
+  writeJson(join(dir, "brief.json"), brief());
+  writeCheckpoint(slug, "brief");
+  writeJson(join(dir, "site_plan.json"), sp);
+  writeJson(join(dir, "design_direction.json"), dd);
+}
+
+test("a direction without a concept is refused", () => {
+  const dd = direction();
+  delete dd.concept;
+  toPlanGate(dd);
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /required property 'concept'/);
+});
+
+test("the concept comes from three territories, and the chosen one is not a style", () => {
+  toPlanGate(direction({ concept: concept({ candidates: [candidate("Senja", "name"), candidate("Sore", "name"), candidate("Satu nota", "system")] }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /three different territories, got name, name, system/);
+  writeJson(join(dir, "design_direction.json"), direction({ concept: concept({ chosen: "Malam" }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /"Malam" is not the name of one of the candidates/);
+  writeJson(join(dir, "design_direction.json"), direction({ concept: concept({ candidates: [candidate("Senja", "name", 4), candidate("Papan harga", "place"), candidate("Satu nota", "system")] }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /portability, so it would work for another business/);
+  writeJson(join(dir, "design_direction.json"), direction({ concept: concept({ candidates: [candidate("Senja", "name"), candidate("Papan harga", "place"), { ...candidate("Satu nota", "system"), anchor_source: "invented" }] }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /anchor_source: must be equal to one of the allowed values/);
+});
+
+test("the generic check covers the five parts, and a generic part names its change", () => {
+  const check = concept().generic_check;
+  toPlanGate(direction({ concept: concept({ generic_check: [...check.slice(0, 4), { part: "copy", generic: false }] }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /generic_check has no entry for "imagery"/);
+  writeJson(join(dir, "design_direction.json"), direction({ concept: concept({ generic_check: [...check.slice(0, 4), { part: "imagery", generic: true }] }) }));
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /"imagery" is where a generic model would land, and names no change/);
+  writeJson(join(dir, "design_direction.json"), direction());
+  writeCheckpoint(slug, "plan", { approved: "ya" });
+});
+
+test("neighbouring sections get different layouts; the navbar and footer do not count", () => {
+  const s = (type, layout) => ({ type, variant: "hero-warung", purpose: "p", layout });
+  const sp = plan();
+  sp.pages[0].sections = [s("navbar", "bar"), s("hero", "split image right"), s("features", "Split image right"), s("footer", "bar")];
+  toPlanGate(direction(), sp);
+  assert.throws(() => writeCheckpoint(slug, "plan", { approved: "ya" }), /two sections in a row use the layout "Split image right"/);
+  sp.pages[0].sections = [s("navbar", "bar"), s("hero", "split image right"), s("features", "index list"), s("cta", "split image right"), s("footer", "bar")];
+  writeJson(join(dir, "site_plan.json"), sp);
+  writeCheckpoint(slug, "plan", { approved: "ya" });
+});
+
+// ── the blind critic ──────────────────────────────────────────────────────
+const { criticBrief, judgeCritique, overallOf } = await import("../tools/lib/critic.mjs");
+
+function toVerify() {
+  throughPlan();
+  writeBundle();
+  writeJson(join(dir, "review", "build.json"), review("build"));
+  writeCheckpoint(slug, "build");
+  writeFileSync(join(dir, "site", "webto.lock.json"), "{}");
+  writeCheckpoint(slug, "draft", { approved: "ya buat" });
+  writeJson(join(dir, "review", "verify.json"), review("verify", { looked_at: ["shots/home-390.png"] }));
+}
+function shots(at = "2026-11-19T10:00:00.000Z") {
+  mkdirSync(join(dir, "shots"), { recursive: true });
+  const list = [
+    { label: "home", width: 390, scheme: "light", reducedMotion: false, file: "shots/home-390.png", fold: "shots/home-390-fold.png", overflowPx: 0, brokenImages: [], consoleErrors: [] },
+    { label: "hero-warung", local: true, width: 390, scheme: "light", reducedMotion: false, file: "shots/hero-warung-390-local.png", overflowPx: 0, brokenImages: [], consoleErrors: [] },
+  ];
+  for (const s of list) for (const f of [s.file, s.fold].filter(Boolean)) writeFileSync(join(dir, ...f.split("/")), "png");
+  writeJson(join(dir, "shots", "index.json"), { at, shots: list, problems: [] });
+  return at;
+}
+const score = (n, file = "shots/home-390-fold.png") => ({ score: n, evidence: [{ file, note: "what the frame shows" }] });
+function critique(pass, at, s = [8, 7.5, 7, 6.5], extra = {}) {
+  writeJson(join(dir, "critique", `pass-${pass}.json`), {
+    pass,
+    critic: "subagent",
+    shots_at: at,
+    business_read: "A small warung in Yogyakarta that takes orders on WhatsApp",
+    idea_read: "One evening at the warung, from dusk to closing",
+    scores: { design: score(s[0]), usability: score(s[1]), distinctiveness: score(s[2]), content: score(s[3]) },
+    fixes: [{ criterion: "usability", file: "shots/home-390-fold.png", what: "The order button sits low", change: "Move it under the name" }],
+    ...extra,
+  });
+}
+
+test("the critic's brief lists the visitor's screenshots only, and needs some", () => {
+  toVerify();
+  const pipeline = loadPipeline("client-site");
+  assert.throws(() => criticBrief(dir, pipeline), /No screenshots yet/);
+  mkdirSync(join(dir, "shots"), { recursive: true });
+  writeJson(join(dir, "shots", "index.json"), { at: "x", shots: [{ label: "hero", local: true, width: 390, file: "shots/hero-390.png" }] });
+  assert.throws(() => criticBrief(dir, pipeline), /Only local previews were captured/);
+  const at = shots();
+  const b = criticBrief(dir, pipeline);
+  assert.equal(b.n, 1);
+  assert.match(b.text, /home-390-fold\.png {2}\(home, 390 px, light, first screen\)/);
+  assert.match(b.text, /home-390\.png {2}\(home, 390 px, light, whole page\)/);
+  assert.doesNotMatch(b.text, /hero-warung-390-local/);
+  assert.ok(b.text.includes(`"shots_at": "${at}"`));
+  assert.match(b.text, /critic-rubric\.md/);
+  assert.match(b.out, /critique[\\/]pass-1\.json$/);
+});
+
+test("a long page reaches the critic in parts, not as one shrunk image", () => {
+  toVerify();
+  mkdirSync(join(dir, "shots"), { recursive: true });
+  const parts = ["shots/home-1280-part-1.png", "shots/home-1280-part-2.png"];
+  writeJson(join(dir, "shots", "index.json"), { at: "t", shots: [{ label: "home", width: 1280, scheme: "dark", reducedMotion: true, file: "shots/home-1280-dark-still.png", fold: "shots/home-1280-dark-still-fold.png", parts }] });
+  const { text } = criticBrief(dir, loadPipeline("client-site"));
+  assert.match(text, /home-1280-part-1\.png {2}\(home, 1280 px, dark, reduced motion, part 1 of 2, top to bottom\)/);
+  assert.match(text, /home-1280-part-2\.png/);
+  assert.doesNotMatch(text, /whole page/);
+});
+
+test("verify needs a critique of the current screenshots that meets the bar", () => {
+  toVerify();
+  const at = shots();
+  assert.throws(() => writeCheckpoint(slug, "verify"), /No critique yet/);
+  critique(1, at, [6, 6, 5.5, 5]);
+  assert.equal(overallOf(JSON.parse(readFileSync(join(dir, "critique", "pass-1.json"), "utf8")).scores), 5.8);
+  assert.throws(() => writeCheckpoint(slug, "verify"), /overall 5\.8, the bar is 7 with every criterion at least 6 \(under: distinctiveness, content\)\. Work through the fixes/);
+  // A pass is final: the same screenshots cannot be judged again.
+  assert.throws(() => criticBrief(dir, loadPipeline("client-site")), /Pass 1 already judged these screenshots/);
+  const at2 = shots("2026-11-19T11:00:00.000Z");
+  assert.equal(criticBrief(dir, loadPipeline("client-site")).n, 2);
+  critique(2, at2, undefined, { scores: { design: score(8, "shots/nope.png"), usability: score(8), distinctiveness: score(8), content: score(8) } });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /design cites shots\/nope\.png, which does not exist/);
+  critique(2, at2);
+  shots("2026-11-19T12:00:00.000Z");
+  assert.throws(() => writeCheckpoint(slug, "verify"), /the screenshots changed after this critique/);
+  shots(at2);
+  const { checkpoint, warnings } = writeCheckpoint(slug, "verify");
+  assert.deepEqual(checkpoint.critique, { pass: 2, critic: "subagent", overall: 7.5, scores: { design: 8, usability: 7.5, distinctiveness: 7, content: 6.5 }, met: true });
+  assert.deepEqual(warnings, []);
+  assert.deepEqual(checkpoint.artifacts.find((a) => a.name === "critique"), { name: "critique", path: "critique/pass-2.json" });
+});
+
+test("after the last pass under the bar only the user can accept the site; a self-score is flagged", () => {
+  toVerify();
+  for (let i = 1; i <= 3; i++) critique(i, shots(`2026-11-19T1${i}:00:00.000Z`), [6, 6, 6, 6]);
+  assert.throws(() => criticBrief(dir, loadPipeline("client-site")), /Pass 3 already judged/);
+  shots("2026-11-19T15:00:00.000Z");
+  assert.throws(() => criticBrief(dir, loadPipeline("client-site")), /3 critic passes are done/);
+  critique(3, "2026-11-19T15:00:00.000Z", [6, 6, 6, 6], { critic: "self" });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /That was the last pass\. Show the user the scores/);
+  const { checkpoint, warnings } = writeCheckpoint(slug, "verify", { belowBar: "tidak apa-apa, foto asli menyusul" });
+  assert.equal(checkpoint.critique.below_bar, "tidak apa-apa, foto asli menyusul");
+  assert.equal(warnings.length, 2);
+  assert.match(warnings.join("\n"), /Accepted under the bar by the user[\s\S]*self-score, not an independent one/);
+});
+
+test("a malformed critique is redone under its own number", () => {
+  toVerify();
+  const at = shots();
+  writeJson(join(dir, "critique", "pass-1.json"), { pass: 1, critic: "subagent", shots_at: at });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /critique\/pass-1\.json\(root\): must have required property 'business_read'/);
+  assert.equal(criticBrief(dir, loadPipeline("client-site")).n, 1);
+  assert.equal(judgeCritique(dir, loadPipeline("client-site")).summary, undefined);
 });
