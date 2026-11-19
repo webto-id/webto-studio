@@ -132,6 +132,22 @@ tells you the provider, the model and how many images before the first one,
 and stops at the number you agreed to. It does not generate pictures that
 would pass for your client's real premises, staff, products or work.
 
+## 3D assets with Blender (optional)
+
+If your agent is connected to a Blender MCP server, the `landing-3d`
+pipeline can model, import or generate the asset and export it as a `.glb`
+the platform loads. There is nothing to switch on here: the agent uses
+Blender when the connection exists and takes another route when it does not.
+
+- The agent asks before it touches your open Blender, works in its own
+  collection, and never saves or changes your file.
+- A generated model may spend your credit with the generator, so the agent
+  asks for a number of attempts first and stops there.
+- A library model is used only under a licence that allows commercial use,
+  and its licence and source are recorded.
+- `node tools/studio.mjs glb <project> <file.glb>` reports a model's size,
+  triangles and textures, and what would stop it from loading.
+
 ## Cost
 
 The framework is free and MIT licensed. Your agent's usage is billed by

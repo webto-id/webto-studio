@@ -27,6 +27,9 @@ const HELP = `webto-studio
   crawl <project> <url> --authorized [--max 20] [--render]
   stock <project> --query "..." [--orientation landscape|portrait|square] [--provider <name>] [--count 6]
   stock-use <project> --pick <n> [--out <file.jpg>]
+  model-budget <project> --max <n> --approved "<what the user said>"
+  model-reserve <project> --what "<the object to generate>"
+  glb <project> <file.glb>                what is in a model, and what would stop it loading
   image-budget <project> --max <n> --approved "<what the user said>"
   image <project> --prompt "..." --out <file.jpg> [--aspect 16:9] [--provider <name>] [--model <id>] [--dry-run]
 `;
@@ -161,6 +164,33 @@ const commands = {
     out(r.creditRule === "required" ? `Credit required on the site: "${r.credit}", linked to ${r.photographerUrl ?? r.pageUrl}.` : r.creditRule === "asked" ? `Credit asked for where it fits: "${r.credit}", linked to ${r.pageUrl}.` : "No credit is required on the site.");
     if (r.oversize) out("Note: the file is above the platform's 2 MB limit. Install sharp (npm install sharp) and run stock-use again.");
     out(`Recorded in projects/${slug}/stock_images.json.`);
+  },
+
+  async "model-budget"({ _: [slug], flags }) {
+    const { setModelBudget } = await import("./lib/model.mjs");
+    const b = setModelBudget(slug, { max: flags.max, approved: flags.approved });
+    out(`Model budget for ${slug}: ${b.max} generation(s), ${b.used} used.`);
+  },
+
+  async "model-reserve"({ _: [slug], flags }) {
+    const { reserveModel } = await import("./lib/model.mjs");
+    const b = reserveModel(slug, { what: flags.what });
+    out(`Reserved generation ${b.used} of ${b.max}. Ask the generator now, for this one object.`);
+  },
+
+  async glb({ _: [slug, file] }) {
+    const { inspectProjectGlb } = await import("./lib/model.mjs");
+    const r = await inspectProjectGlb(slug, file);
+    out(`${r.file}: ${(r.bytes / 1048576).toFixed(2)} MB`);
+    if (r.meshes !== undefined) {
+      out(`  ${r.meshes} mesh(es), ${r.triangles.toLocaleString("en")} triangles, ${r.vertices.toLocaleString("en")} vertices, ${r.materials} material(s), ${r.animations} animation(s)`);
+      out(`  compression: ${r.compression}; extensions: ${r.extensions.join(", ") || "none"}`);
+      for (const t of r.textures) out(`  texture ${t.index}: ${t.type}${t.width ? ` ${t.width}x${t.height}` : ""}${t.bytes ? ` ${Math.round(t.bytes / 1024)} KB` : ""}`);
+    }
+    for (const p of r.problems) out(`PROBLEM: ${p}`);
+    for (const a of r.advice) out(`Advice: ${a}`);
+    out(r.ok ? "Nothing here would stop the model from loading." : "The model will not load as it is.");
+    if (!r.ok) process.exitCode = 1;
   },
 
   async "image-budget"({ _: [slug], flags }) {

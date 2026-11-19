@@ -32,8 +32,10 @@ effect converts nobody.
 3. **Name the asset's source and rights** (`asset_source`, `rights`):
    supplied by the client (`own`), bought or downloaded under a licence that
    allows this use (`licensed`), or made in this session (`generated`, for
-   instance modelled in Blender when a connection is available). A model or
-   video of unknown origin is not used.
+   instance modelled in Blender when a connection is available; read
+   `skills/meta/blender.md` before proposing it). A model or video of unknown
+   origin is not used. A generated model never stands in for the client's
+   actual product.
 4. **Name the fallback** (`fallback`): the poster image shown in the editor,
    in thumbnails, to visitors who ask for reduced motion, and while the
    effect loads. The page must make sense with only the poster.

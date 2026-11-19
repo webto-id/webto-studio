@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "assets_manifest",
-  "description": "Every file the bundle ships, with its size and who holds the rights.",
+  "description": "Every file the bundle ships, with its size, where it came from and who holds the rights.",
   "type": "object",
   "required": ["files"],
   "properties": {
@@ -10,15 +10,32 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["file", "kind", "bytes", "role", "rights"],
+        "required": ["file", "kind", "bytes", "role", "rights", "origin"],
         "properties": {
           "file": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
           "kind": { "enum": ["image", "model", "video"] },
           "bytes": { "type": "integer", "minimum": 1 },
           "role": { "type": "string", "minLength": 1 },
           "rights": { "enum": ["own", "licensed", "generated"] },
-          "made_with": { "type": "string" }
-        }
+          "origin": {
+            "enum": ["supplied", "library", "ai-generated", "modelled", "rendered", "stock"],
+            "description": "supplied = the client's own file; library = downloaded from an asset library; ai-generated = made by a generator; modelled = built by hand or by script in this session; rendered = a render or frame of another file here; stock = a stock photograph"
+          },
+          "made_with": { "type": "string" },
+          "licence": { "type": "string", "description": "Required for origin library: the licence as the library states it, e.g. CC0, CC-BY 4.0" },
+          "source_url": { "type": "string", "description": "Required for origin library: the asset's own page" },
+          "author": { "type": "string" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "origin": { "const": "library" } } },
+            "then": { "required": ["licence", "source_url"], "properties": { "licence": { "minLength": 2 }, "source_url": { "minLength": 8 }, "rights": { "const": "licensed" } } }
+          },
+          {
+            "if": { "properties": { "origin": { "const": "ai-generated" } } },
+            "then": { "required": ["made_with"], "properties": { "rights": { "const": "generated" }, "made_with": { "minLength": 2 } } }
+          }
+        ]
       }
     }
   }

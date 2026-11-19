@@ -107,7 +107,11 @@ redone three times. After that, stop and ask the user how to proceed.
 8. **Look before you report.** A passing validator does not mean the page
    looks right. Capture the real pages with `studio shoot` and open the
    images. Without a browser, say so, and list the check as not done.
-9. **Report what happened.** If a check failed, was skipped, or could not be
+9. **A Blender connection is the user's open Blender.** Ask before the first
+   use, work in your own collection, never touch or save their work, and
+   reserve every generated model inside a budget they approved. Read
+   `skills/meta/blender.md` first.
+10. **Report what happened.** If a check failed, was skipped, or could not be
    made, say that. Never describe a draft as live, or a dry run as a write.
 
 ## The project folder
@@ -153,6 +157,9 @@ All through `node tools/studio.mjs <command>`:
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |
 | `stock <project> --query "..."` | Searches Unsplash, Pexels or Pixabay with the user's free key (from `.env`) and saves previews to `reports/stock/`. `--orientation`, `--provider`, `--count` |
 | `stock-use <project> --pick <n> [--out <file>]` | Takes one photo of the last search into the site the way its library requires, and records the credit in `stock_images.json` |
+| `glb <project> <file.glb>` | Reads a 3D model: size, triangles, compression, textures, and what would stop it from loading |
+| `model-budget <project> --max <n> --approved "..."` | Records how many generated 3D models the user agreed to |
+| `model-reserve <project> --what "..."` | Takes one generation out of that budget, before the generator is asked |
 | `image-budget <project> --max <n> --approved "..."` | Records how many images the user agreed to pay for |
 | `image <project> --prompt "..." --out <file>` | Generates one image on the user's own key (Gemini, OpenRouter, OpenAI or fal, from `.env`) into the bundle's `assets/`. `--aspect`, `--provider`, `--model`, `--dry-run` |
 
@@ -168,7 +175,7 @@ listings).
 |---|---|---|
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
-| Meta | `skills/meta/*` | Onboarding, self-review, gates, taste, images |
+| Meta | `skills/meta/*` | Onboarding, self-review, gates, taste, images, Blender |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 
 When a director and a core skill disagree about the platform's format or

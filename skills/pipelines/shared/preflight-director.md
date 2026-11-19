@@ -16,8 +16,11 @@ Find out what this machine and this token can do before promising anything.
 3. If the pipeline needs something the token cannot do, tell the user now,
    say which permission to add, and stop until they have a new token.
 4. For `landing-3d`, also note which optional helpers you have in this
-   session (a Blender connection, `gltf-transform` through `npx`). Missing
-   helpers narrow the recipe choice; they do not block the pipeline.
+   session: a Blender connection (look at your own tools, and call its
+   status tool if it has one; see `skills/meta/blender.md`) and
+   `gltf-transform` through `npx`. Missing helpers narrow the recipe choice;
+   they do not block the pipeline. Log what you found:
+   `node tools/studio.mjs log <project> "Blender: <connected, version, generators on | not connected>"`.
 
 ## Done
 

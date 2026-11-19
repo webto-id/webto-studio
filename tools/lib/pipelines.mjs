@@ -120,6 +120,22 @@ function checkArtifact(dir, pipeline, name, stage, problems) {
   if (name === "preflight" && data.ok !== true) {
     problems.push(`${rel}: preflight did not pass (${(data.problems ?? []).join("; ") || "see the report"}). Fix it and run "studio preflight <project>" again`);
   }
+  if (name === "assets_manifest" && Array.isArray(data?.files)) {
+    const assets = join(dir, pipeline.bundle, "assets");
+    for (const f of data.files) {
+      if (typeof f.file === "string" && !existsSync(join(assets, f.file))) problems.push(`${rel}: "${f.file}" is not in ${pipeline.bundle}/assets/`);
+      if (f.origin === "library" && /\b(NC|ND|non-?commercial|no-?deriv)/i.test(f.licence ?? "")) {
+        problems.push(`${rel}: "${f.file}" has licence "${f.licence}", which does not allow use on a business's site or changes to the file. Choose another asset`);
+      }
+    }
+    if (data.poster && !data.files.some((f) => f.file === data.poster)) problems.push(`${rel}: the poster "${data.poster}" is not listed in files`);
+    // Every generated model must have been taken out of the budget the user approved.
+    const generated = data.files.filter((f) => f.kind === "model" && f.origin === "ai-generated").length;
+    const reserved = readJson(join(dir, "project.json")).modelBudget?.used ?? 0;
+    if (generated > reserved) {
+      problems.push(`${rel}: ${generated} generated model(s) listed but ${reserved} reserved. A generation is reserved with "studio model-reserve" before the generator is asked, inside a budget the user approved`);
+    }
+  }
   if (name === "check_report") {
     if (data.ok !== true) problems.push(`${rel}: the last check did not pass. Fix the errors and run "studio check" again`);
     const bundleDir = join(dir, pipeline.bundle);

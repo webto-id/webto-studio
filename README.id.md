@@ -132,6 +132,24 @@ menyebutkan penyedia, model, dan jumlah gambar sebelum membuat yang pertama,
 dan berhenti pada jumlah yang Anda setujui. Agen tidak membuat gambar yang
 bisa dikira foto asli tempat usaha, staf, produk, atau hasil kerja klien.
 
+## Aset 3D dengan Blender (opsional)
+
+Bila agen Anda tersambung ke server Blender MCP, pipeline `landing-3d` bisa
+memodelkan, mengimpor, atau membuat aset lalu mengekspornya sebagai `.glb`
+yang dimuat platform. Tidak ada yang perlu dinyalakan di sini: agen memakai
+Blender bila sambungannya ada, dan mengambil jalur lain bila tidak.
+
+- Agen bertanya dulu sebelum menyentuh Blender Anda yang sedang terbuka,
+  bekerja di collection miliknya sendiri, dan tidak pernah menyimpan atau
+  mengubah file Anda.
+- Model buatan generator bisa memotong kredit Anda di penyedia generator,
+  jadi agen meminta jumlah percobaan lebih dulu dan berhenti di angka itu.
+- Model dari pustaka aset hanya dipakai bila lisensinya mengizinkan
+  penggunaan komersial; lisensi dan sumbernya dicatat.
+- `node tools/studio.mjs glb <proyek> <berkas.glb>` melaporkan ukuran,
+  jumlah segitiga, dan tekstur sebuah model, serta apa yang membuatnya gagal
+  dimuat.
+
 ## Biaya
 
 Framework ini gratis dan berlisensi MIT. Pemakaian agen ditagih oleh penyedia

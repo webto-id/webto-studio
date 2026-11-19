@@ -396,6 +396,99 @@ test("a refused search says why and never shows the key", async () => {
   await assert.rejects(searchStock(slug, { query: "soup" }, { env: { PIXABAY_API_KEY: "SECRET-KEY" }, fetchImpl: async () => reply(429, "API rate limit exceeded", "text/plain") }), (e) => /HTTP 429.*hourly limit/.test(e.message) && !e.message.includes("SECRET-KEY"));
 });
 
+// ── 3D models ─────────────────────────────────────────────────────────────
+const { inspectGlb, reserveModel, setModelBudget } = await import("../tools/lib/model.mjs");
+const { mkdirSync: mkdir } = await import("node:fs");
+
+/** A minimal, valid .glb around the given glTF JSON (4-byte padded, with a small BIN chunk). */
+function glb(gltf, binSize = 8) {
+  let json = Buffer.from(JSON.stringify(gltf));
+  json = Buffer.concat([json, Buffer.alloc((4 - (json.length % 4)) % 4, 0x20)]);
+  const bin = Buffer.alloc(binSize);
+  const head = Buffer.alloc(12);
+  head.writeUInt32LE(0x46546c67, 0);
+  head.writeUInt32LE(2, 4);
+  head.writeUInt32LE(12 + 8 + json.length + 8 + bin.length, 8);
+  const jh = Buffer.alloc(8);
+  jh.writeUInt32LE(json.length, 0);
+  jh.writeUInt32LE(0x4e4f534a, 4);
+  const bh = Buffer.alloc(8);
+  bh.writeUInt32LE(bin.length, 0);
+  bh.writeUInt32LE(0x004e4942, 4);
+  return Buffer.concat([head, jh, json, bh, bin]);
+}
+const JAR = {
+  asset: { version: "2.0" },
+  extensionsUsed: ["KHR_draco_mesh_compression"],
+  accessors: [{ count: 300 }, { count: 900 }],
+  meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
+  materials: [{}],
+  buffers: [{ byteLength: 8 }],
+};
+
+test("a .glb is read for what the platform's runtime will meet", async () => {
+  const ok = await inspectGlb(glb(JAR), null);
+  assert.deepEqual([ok.meshes, ok.vertices, ok.triangles, ok.materials, ok.compression, ok.problems], [1, 300, 300, 1, "draco", []]);
+
+  const bad = await inspectGlb(glb({ ...JAR, extensionsUsed: ["KHR_texture_basisu"], buffers: [{ byteLength: 8 }, { uri: "model.bin" }], images: [{ uri: "wood.png" }, { uri: "data:image/png;base64,AA" }] }), null);
+  assert.equal(bad.problems.length, 3);
+  assert.match(bad.problems[0], /KTX2/);
+  assert.match(bad.problems[1], /Buffer 1 is a separate file \(model\.bin\)/);
+  assert.match(bad.problems[2], /Image 0 is a separate file \(wood\.png\)/);
+
+  assert.match((await inspectGlb(Buffer.from('{"asset":{"version":"2.0"}}                '), null)).problems[0], /Not a \.glb file/);
+  assert.match((await inspectGlb(glb({ asset: { version: "2.0" } }), null)).problems[0], /no mesh/);
+  const huge = await inspectGlb(glb(JAR, 10 * 1024 * 1024 + 4), null);
+  assert.match(huge.problems[0], /above the platform's 10 MB limit/);
+  const heavy = await inspectGlb(glb({ ...JAR, extensionsUsed: [], accessors: [{ count: 400000 }, { count: 1200000 }] }, 4 * 1024 * 1024), null);
+  assert.deepEqual([heavy.problems.length, heavy.advice.length, heavy.triangles], [0, 3, 400000]);
+});
+
+test("a generated model needs a budget, and the manifest must agree with it", () => {
+  assert.throws(() => reserveModel(slug, { what: "a ceramic jar with a lid" }), /No model budget for this project yet/);
+  assert.throws(() => setModelBudget(slug, { max: 2 }), /pass --approved/);
+  assert.throws(() => setModelBudget(slug, { max: 11, approved: "ya" }), /from 1 to 10/);
+  setModelBudget(slug, { max: 1, approved: "boleh, satu kali coba" });
+  assert.equal(reserveModel(slug, { what: "a ceramic jar with a lid" }).used, 1);
+  assert.throws(() => reserveModel(slug, { what: "a second jar, taller" }), /budget is used up \(1 of 1\)/);
+});
+
+test("the assets stage checks files, licences and generated models against the budget", () => {
+  const d3 = createProject(`m${n}`, "landing-3d").dir;
+  const s3 = `m${n}`;
+  writeJson(join(d3, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(s3, "preflight");
+  writeJson(join(d3, "brief.json"), brief());
+  writeJson(join(d3, "concept.json"), {
+    for_whom: "People choosing a gift jar of sambal", promise: "See the jar from every side before ordering", differentiator: "The real jar turns as the page scrolls",
+    three_d: { recipe: "model-glb", asset_source: "generated in this session", rights: "generated", fallback: "jar-poster.jpg" },
+  });
+  writeJson(join(d3, "design_direction.json"), direction());
+  writeCheckpoint(s3, "concept", { approved: "ya" });
+
+  const file = (extra) => ({ file: "jar.glb", kind: "model", bytes: 1000, role: "the turning jar", rights: "generated", origin: "ai-generated", made_with: "generator", ...extra });
+  const manifest = (files, poster = "jar-poster.jpg") => writeJson(join(d3, "assets_manifest.json"), { poster, files: [...files, { file: "jar-poster.jpg", kind: "image", bytes: 10, role: "poster", rights: "generated", origin: "rendered" }] });
+  mkdir(join(d3, "site", "assets"), { recursive: true });
+  writeFileSync(join(d3, "site", "assets", "jar-poster.jpg"), "x");
+
+  manifest([file()]);
+  assert.throws(() => writeCheckpoint(s3, "assets"), /"jar\.glb" is not in site\/assets\/[\s\S]*1 generated model\(s\) listed but 0 reserved/);
+  writeFileSync(join(d3, "site", "assets", "jar.glb"), "x");
+  manifest([file({ origin: "library", rights: "licensed" })]);
+  assert.throws(() => writeCheckpoint(s3, "assets"), /required property 'licence'/);
+  manifest([file({ origin: "library", rights: "licensed", licence: "CC BY-NC 4.0", source_url: "https://example.test/jar" })]);
+  assert.throws(() => writeCheckpoint(s3, "assets"), /does not allow use on a business's site/);
+  manifest([file({ origin: "library", rights: "licensed", licence: "CC-BY 4.0", source_url: "https://example.test/jar", author: "A. Maker" })], "missing.jpg");
+  assert.throws(() => writeCheckpoint(s3, "assets"), /poster "missing\.jpg" is not listed/);
+  manifest([file({ origin: "library", rights: "licensed", licence: "CC-BY 4.0", source_url: "https://example.test/jar", author: "A. Maker" })]);
+  writeCheckpoint(s3, "assets");
+
+  manifest([file()]);
+  setModelBudget(s3, { max: 2, approved: "dua kali coba" });
+  reserveModel(s3, { what: "a ceramic jar with a lid" });
+  writeCheckpoint(s3, "assets");
+});
+
 test("robots.txt rules for every crawler are read, others ignored", () => {
   assert.deepEqual(parseRobots("User-agent: Googlebot\nDisallow: /a\n\nUser-agent: *\nDisallow: /private/ # x\nDisallow:\nAllow: /\n"), ["/private/"]);
   assert.equal(decodeEntities("A &amp; B &#8211; &#x26;"), "A & B – &");
