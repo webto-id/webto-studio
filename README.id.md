@@ -15,7 +15,30 @@ bisa membawa model `.glb` yang berputar saat digulir tanpa build sendiri.
 
 English: [README.md](README.md)
 
-> Status: v0.1, masih awal. Pipeline dan tool sudah jalan; galeri demo belum ada.
+> Status: v0.1, masih awal.
+
+## Dibuat dengannya
+
+Masing-masing dari satu permintaan pendek, lalu wawancara agen dijawab dari
+fakta yang sudah ditetapkan, langsung di platform. Semua usahanya fiksi (footer
+tiap situs menyebutnya) dan semua gambarnya buatan AI. "Kritikus" adalah skor
+tertimbang kritikus buta yang hanya melihat tangkapan layar; ambang untuk
+terbit adalah 7.
+
+| Situs | Pipeline | Permintaannya | Waktu | Biaya agen* | Kritikus |
+|---|---|---|---|---|---|
+| [Soto Ayam Pak Wiryo](https://demo-soto-pak-wiryo.wpage.id) | `client-site` | "Bikinin website buat warung soto saya di Semarang" | 26 menit | $10.58 | 7.45 |
+| [Klinik Gigi Anak Ceria](https://demo-klinik-gigi-ceria.wpage.id) | `client-site` | "Website klinik gigi anak di Surabaya" | 39 menit | $13.62 | 7.15 |
+| [Dingin Teknik](https://demo-dingin-teknik.wpage.id) | `client-site` | "tolong buatkan web jasa servis AC di Bekasi" | 21 menit | $10.46 | 7.5 |
+| [Kopi Lembah Toraja](https://demo-kopi-lembah-toraja.wpage.id) | `landing-3d` | "Landing page untuk kopi bubuk kemasan saya, yang terasa premium" | 37 menit | $18.01 | 7.5 |
+| Papan Seduh (template) | `template-for-sale` | "Buat template siap jual untuk kafe dan kedai kopi kecil" | 60 menit | $19.29 | 7.15 |
+| Daftar Berkas (template) | `template-for-sale` | "Buat template siap jual untuk kantor konsultan pajak dan akuntan" | 54 menit | $18.40 | 7.0 |
+
+\* Claude Code dengan Opus, dihitung dengan harga API, sebagian besar input
+dari cache. Tiga terakhir sempat terputus batas pemakaian lalu dilanjutkan,
+dan melanjutkan berarti memuat ulang konteks; tanpa terputus biayanya kira-kira
+sama dengan tiga yang pertama. Kedua template masih draft di marketplace sampai
+penjualnya menetapkan harga.
 
 ## Yang dihasilkan
 

@@ -1,0 +1,100 @@
+{
+  "about": "The README gallery: short requests built end to end by the studio, live on webto.id. Every business here is fictional and every site says so in its footer. Phone numbers are deliberately not real mobile numbers.",
+  "demo_note": "Situs contoh: usaha fiksi, dibuat dengan webto-studio.",
+  "phone": "0800-0000-0000 (contoh)",
+  "whatsapp": "6280000000000",
+  "cases": [
+    {
+      "id": "soto",
+      "pipeline": "client-site",
+      "subdomain": "demo-soto-pak-wiryo",
+      "prompt": "Bikinin website buat warung soto saya di Semarang",
+      "answers": {
+        "nama": "Soto Ayam Pak Wiryo",
+        "alamat": "Jl. Pemuda (contoh), Semarang; warung kaki lima di depan toko kain",
+        "menu dan harga": "Soto ayam kampung Rp15.000; soto ayam + nasi pisah Rp17.000; sate telur puyuh Rp3.000; sate usus Rp3.000; perkedel Rp2.000; es teh Rp4.000; jeruk hangat Rp5.000",
+        "jam": "Setiap hari 06.00-11.00, Jumat libur",
+        "cerita": "Dibuka 1987 oleh Pak Wiryo; sekarang dijalankan anaknya, Mas Bayu; kuah bening dari ayam kampung, dimasak sejak jam 3 pagi",
+        "pesan antar": "Lewat WhatsApp, minimal 5 porsi untuk kantor sekitar Jl. Pemuda",
+        "halal": "Belum bersertifikat halal; tidak memakai babi",
+        "tujuan": "Pesan lewat WhatsApp atau datang pagi",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    },
+    {
+      "id": "klinik",
+      "pipeline": "client-site",
+      "subdomain": "demo-klinik-gigi-ceria",
+      "prompt": "Website klinik gigi anak di Surabaya",
+      "answers": {
+        "nama": "Klinik Gigi Anak Ceria",
+        "alamat": "Jl. Dharmahusada (contoh), Surabaya; lantai 1, parkir 4 mobil",
+        "dokter": "drg. Nadia Larasati, Sp.KGA (dokter gigi spesialis anak); drg. Reza Pratama (dokter gigi umum)",
+        "izin": "Izin klinik pratama dari Dinas Kesehatan Kota Surabaya; nomor belum diberikan",
+        "layanan dan harga": "Konsultasi anak Rp120.000; pembersihan karang Rp300.000; tambal gigi susu mulai Rp250.000; pencabutan gigi susu mulai Rp200.000; fissure sealant Rp350.000 per gigi",
+        "jam": "Senin-Jumat 14.00-20.00, Sabtu 09.00-14.00",
+        "pendekatan": "Kunjungan pertama hanya perkenalan kursi dan alat; ruang tunggu ada pojok baca",
+        "tujuan": "Orang tua membuat janji lewat WhatsApp",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    },
+    {
+      "id": "servis-ac",
+      "pipeline": "client-site",
+      "subdomain": "demo-dingin-teknik",
+      "prompt": "tolong buatkan web jasa servis AC di Bekasi",
+      "answers": {
+        "nama": "Dingin Teknik",
+        "area": "Bekasi Kota, Bekasi Utara, Tambun; teknisi datang ke rumah",
+        "layanan dan harga": "Cuci AC 0,5-1 PK Rp75.000; cuci AC 1,5-2 PK Rp90.000; isi freon R32 mulai Rp250.000; bongkar pasang AC Rp350.000; cek kerusakan Rp50.000 (gratis bila lanjut perbaikan)",
+        "garansi": "Garansi kerja 30 hari untuk perbaikan",
+        "jam": "Senin-Sabtu 08.00-18.00",
+        "teknisi": "5 teknisi, pemilik Pak Hendro sudah 11 tahun di servis AC",
+        "tujuan": "Pesan jadwal kunjungan lewat WhatsApp",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    },
+    {
+      "id": "kopi-3d",
+      "pipeline": "landing-3d",
+      "subdomain": "demo-kopi-lembah-toraja",
+      "prompt": "Landing page untuk kopi bubuk kemasan saya, Lembah Toraja, yang terasa premium",
+      "answers": {
+        "nama": "Kopi Lembah Toraja",
+        "produk": "Kopi arabika Toraja sangrai medium, bubuk dan biji, kemasan 200 g Rp85.000 dan 500 g Rp195.000",
+        "asal": "Petani di lereng Sesean, Toraja Utara (fiksi); dipetik merah, proses semi-washed",
+        "rasa": "Rempah, cokelat hitam, sedikit asam buah",
+        "izin": "P-IRT belum ada nomornya; jangan tulis nomor",
+        "cara beli": "Lewat WhatsApp; kirim ke seluruh Indonesia",
+        "tujuan": "Pesan lewat WhatsApp",
+        "3D": "Tanpa Blender dan tanpa generator 3D berbayar: pakai resep yang tidak butuh model atau video (ogl-shader, depth-parallax, atau jar-label), poster dari gambar AI",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    },
+    {
+      "id": "tpl-kafe",
+      "pipeline": "template-for-sale",
+      "prompt": "Buat template siap jual untuk kafe dan kedai kopi kecil",
+      "answers": {
+        "pembeli": "Pemilik kafe kecil dan kedai kopi di kota menengah, dengan menu 10-30 item, yang menerima pesanan lewat WhatsApp",
+        "kategori": "Kuliner",
+        "usaha fiksi untuk contoh": "Kedai Seduh Senja, Yogyakarta (contoh)",
+        "harga": "Pemilik menentukan harga nanti; buat listing sebagai draft dengan harga 0",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    },
+    {
+      "id": "tpl-konsultan",
+      "pipeline": "template-for-sale",
+      "prompt": "Buat template siap jual untuk kantor konsultan pajak dan akuntan",
+      "answers": {
+        "pembeli": "Konsultan pajak perorangan dan kantor akuntan kecil (2-10 orang) yang melayani UMKM dan karyawan",
+        "kategori": "Bisnis & Jasa",
+        "usaha fiksi untuk contoh": "Kantor Konsultan Pajak Wibisana & Rekan, Bandung (contoh)",
+        "harga": "Pemilik menentukan harga nanti; buat listing sebagai draft dengan harga 0",
+        "foto": "Belum ada foto asli; pakai gambar AI, gaya foto realistis atau ilustrasi, sesuai konsep"
+      }
+    }
+  ],
+  "photo_rule": "AI images may be photographic or illustrated, whichever suits the concept. The footer already says the business is fictional, so the images need no label of their own. Never a recognisable real person."
+}
