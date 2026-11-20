@@ -21,19 +21,27 @@ the seller's to decide.
 3. **Write the listing** from the manifest's `listing` block: name, title,
    description, category, tags. Add the "What will not be copied" list from
    the core template skill, filled in for this template.
+   **Pick the screenshots** from the verify stage's captures of the real
+   draft (`shots/`): up to six, the first one the card image. A good set is
+   the home page's first screen at 1280, the same at 390, and the strongest
+   inner pages. Only captures of the current draft, never local previews.
 4. **The gate.** Show the seller the exact listing: name, title, category,
-   price, and whether it will be created as a draft or published. Default to
+   price, the screenshots in their order, and whether it will be created as
+   a draft or published. Default to
    a draft. Ask. Wait.
-5. **If the token can manage listings**: `create_template_listing` dry run,
-   then `confirm: true` with their approval. Publish only if they asked for
+5. **If the token can manage listings**: `begin_listing_screenshot_upload`,
+   upload each picked image as it says (2 MB at most, the type set
+   explicitly), keep the keys it answers, then `create_template_listing`
+   with them in `screenshots`: dry run, then `confirm: true` with their
+   approval. Publish only if they asked for
    it in so many words. Give them the catalog and live-preview links the tool
    returns.
 6. **If it cannot**: tell them to create the listing in the dashboard, and
    give them the text to paste.
 7. **Write `listing.json`** with what was approved and created, and in
-   `left_for_dashboard` what remains: listing screenshots are added in the
-   dashboard, and sections still waiting for review must be approved before
-   the listing can go live.
+   `left_for_dashboard` what remains: sections still waiting for review must
+   be approved before the listing can go live, and, without a token that
+   manages listings, the screenshots.
 
 ## Done
 

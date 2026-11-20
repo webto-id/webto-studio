@@ -6,7 +6,7 @@ full website studio.**
 Open this folder in Claude Code, Cursor, Codex or another coding agent, ask
 for a website, and the agent runs a production pipeline: it interviews,
 designs every section, builds, checks its own work, and ships to
-[webto.id](https://webto.id), where the site is hosted and the client edits
+[webto.id](https://webto.id/?utm_source=github&utm_medium=webto-studio&utm_campaign=readme-en), where the site is hosted and the client edits
 it in a visual editor.
 
 Sections are written in an Astro subset with Tailwind. Motion and 3D use
@@ -30,7 +30,7 @@ Bahasa Indonesia: [README.id.md](README.id.md)
 ## Quick start
 
 You need Node 20 or newer, a coding agent, and a free
-[webto.id](https://app.webto.id) account.
+[webto.id](https://app.webto.id/?utm_source=github&utm_medium=webto-studio&utm_campaign=readme-en) account.
 
 ```bash
 git clone https://github.com/webto-id/webto-studio

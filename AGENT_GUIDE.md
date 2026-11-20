@@ -210,8 +210,7 @@ still decides the stack, the stages and the gates.
 ## What you cannot do, and what to say
 
 No tool deletes a site, changes a plan, attaches a custom domain, sets up
-payments, changes integrations, or edits products and blog posts. Listing
-screenshots are added in the dashboard. A site can be handed over to a
+payments, changes integrations, or edits products and blog posts. A site can be handed over to a
 client's account with `create_site_handoff` (see the handoff director), but
 only the client can accept it, and only the user can cancel it. When the user
 needs one of these, say it is done in the

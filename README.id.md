@@ -6,7 +6,7 @@ studio website lengkap.**
 Buka folder ini di Claude Code, Cursor, Codex, atau agen coding lain, minta
 dibuatkan website, dan agen menjalankan alur produksi: mewawancarai,
 mendesain setiap bagian, membangun, memeriksa hasilnya sendiri, lalu
-menerbitkannya ke [webto.id](https://webto.id). Situs di-hosting di sana dan
+menerbitkannya ke [webto.id](https://webto.id/?utm_source=github&utm_medium=webto-studio&utm_campaign=readme-id). Situs di-hosting di sana dan
 klien mengeditnya lewat editor visual.
 
 Section ditulis dalam subset Astro dengan Tailwind. Animasi dan 3D memakai
@@ -29,7 +29,7 @@ English: [README.md](README.md)
 ## Mulai cepat
 
 Butuh Node 20 atau lebih baru, sebuah agen coding, dan akun
-[webto.id](https://app.webto.id) gratis.
+[webto.id](https://app.webto.id/?utm_source=github&utm_medium=webto-studio&utm_campaign=readme-id) gratis.
 
 ```bash
 git clone https://github.com/webto-id/webto-studio
