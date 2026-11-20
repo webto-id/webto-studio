@@ -1,0 +1,32 @@
+{
+  "case": "klinik-gigi",
+  "version": "after",
+  "site_id": "dc28z3yjkmijaeb2c0eqpijd",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Layanan & Harga",
+      "slug": "layanan"
+    },
+    {
+      "title": "Dokter",
+      "slug": "dokter"
+    },
+    {
+      "title": "Kontak",
+      "slug": "kontak"
+    }
+  ],
+  "notes": "Draft only, not published; subdomain klinikgigisekararum (checked free, not yet claimed by publishing). Blind critic: pass 1 scored 6.65 (below the bar of 7). After fixes through update_site, pass 2 scored 7.0 with every criterion at 7: bar met, independent subagent critic. Search audit: no problems on all 4 pages (draft noindex is expected). Things that went wrong or changed: (1) the today-highlight on the hero board did not render at first (Tailwind scale utility conflicted with the transform), fixed in build; (2) the platform map on Kontak captured as an empty box and was off-style, so it was removed after pass 1 and replaced by a 'Buka di Google Maps' link: a structure change, logged and recorded as its own gate; (3) a shell heredoc and a sed/backtick substitution mangled files twice during editing; both were caught and rewritten before checks. The create_site/export_site_bundle/update_site calls went to the same webto MCP endpoint through a small local JSON-RPC client (tmp/mcp-call.mjs, token read from env and never printed) instead of inlining 65 KB of section source into a tool call; each was dry-run first. No images: the clinic has no photos and no stock key is configured; doctors appear as initials tiles, and no stock people or rooms were used. Not on the site because the brief lacks them: the licence number (pending from the client), STR/SIP numbers, drg. Bima's exact afternoon hours, email, social links, logo. The free behel consultation is listed plainly as a price ('Gratis'), not as a promotion. Open critic suggestions not done: portraits and a building photo (need the client's photos), making the CTA message card itself a link, darkening the hero lead text. Handoff stage not run because it comes after publish."
+}

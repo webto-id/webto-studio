@@ -1,7 +1,7 @@
 // Screenshots of real pages at phone, tablet and desktop width, plus the
 // three things a screenshot alone does not prove: sideways overflow, images
 // that failed to load, and errors in the console.
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { StudioError, now, writeJson } from "./core.mjs";
 import { loadProject } from "./pipelines.mjs";
@@ -64,12 +64,26 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
         } catch (e) {
           loadError = e.message.split("\n")[0];
         }
-        // Walk down the page so lazy images load and entrance effects run.
+        // Walk down the page at a reader's pace so lazy images load and entrance
+        // effects run. A quick walk leaves reveals below hidden (their observer
+        // fires after the page has moved on), and the capture then shows empty
+        // sections no visitor sees. An effect still waiting is brought to the
+        // middle of the screen, as a visitor reading down would bring it; one
+        // that stays hidden there is a real fault and is photographed as such.
         await page.evaluate(async () => {
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
           const step = Math.max(200, Math.floor(window.innerHeight * 0.8));
           for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
             window.scrollTo(0, y);
-            await new Promise((r) => setTimeout(r, 120));
+            await wait(350);
+          }
+          const waiting = () =>
+            [...document.querySelectorAll("[data-wv-effect]")].filter(
+              (e) => !e.classList.contains("wv-in") && !(e.dataset.wvEffect === "stagger" && e.children.length && [...e.children].every((k) => k.classList.contains("wv-in"))),
+            );
+          for (const el of waiting().slice(0, 40)) {
+            el.scrollIntoView({ block: "center" });
+            await wait(500);
           }
           window.scrollTo(0, 0);
         }).catch(() => {});
@@ -87,12 +101,30 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
         const fold = `${base}-fold.png`;
         // Transitions are run to their end before each capture: a crossfade caught
         // halfway shows two phrases on top of each other, which no visitor sees.
-        await page.screenshot({ path: join(outDir, file), fullPage: true, animations: "disabled" }).catch((e) => (loadError ??= e.message.split("\n")[0]));
-        // The first screen on its own: what a visitor sees before scrolling, at real size.
+        // The first screen on its own: what a visitor sees before scrolling, at real size,
+        // with everything that floats over it.
         const foldOk = await page.screenshot({ path: join(outDir, fold), fullPage: false, animations: "disabled" }).then(() => true, () => false);
+        // What stays fixed on the screen (a WhatsApp button, a sticky bar, the platform's
+        // badge) would be drawn wherever the capture happened to leave it, over content
+        // it never covers for a visitor. The fold shows it; the rest leaves it out.
+        await page
+          .evaluate(() => {
+            // A fixed backdrop (a full-screen canvas or image behind the page) is part of
+            // the look and stays; only what floats over a part of the screen goes.
+            const screen = innerWidth * innerHeight;
+            for (const el of document.querySelectorAll("body *")) {
+              if (getComputedStyle(el).position !== "fixed") continue;
+              const r = el.getBoundingClientRect();
+              if (r.width * r.height < screen * 0.3) el.style.setProperty("visibility", "hidden", "important");
+            }
+          })
+          .catch(() => {});
+        await page.screenshot({ path: join(outDir, file), fullPage: true, animations: "disabled" }).catch((e) => (loadError ??= e.message.split("\n")[0]));
         // A long page shrunk into one image cannot be read, so it is also cut into
         // parts a reader can open at real size.
         const parts = [];
+        // Parts left by an earlier capture of this page would sit beside the new ones.
+        for (const old of readdirSync(outDir).filter((f) => f.startsWith(`${base}-part-`) && /^-part-\d+\.png$/.test(f.slice(base.length)))) rmSync(join(outDir, old));
         const height = await page.evaluate(() => document.documentElement.scrollHeight).catch(() => 0);
         // Parts grow on a very long page, so the whole page is always covered.
         const seg = Math.max(Math.round(VIEW_HEIGHT * 1.5), Math.ceil(height / MAX_PARTS));

@@ -1,0 +1,28 @@
+{
+  "case": "kursus",
+  "version": "before",
+  "site_id": "snqu0rov3x0cgdxq5mzlw6mf",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Program & Biaya",
+      "slug": "program"
+    },
+    {
+      "title": "Kelas Percobaan",
+      "slug": "kelas-percobaan"
+    }
+  ],
+  "notes": "Draft only, not published (subdomain kelaskancil reserved for publish). 12 own WVF variants, studio check 0 errors / 0 warnings, create_site dry run clean. Issues: (1) heading font Fredoka from the approved plan is not on the platform list, replaced by Rubik after the gate (logged, noted in eval-gates.md). (2) On the live draft the home page's steps section rendered empty because the platform stagger effect never revealed it; fixed by removing the effect via update_site (revision s1-c2e1b3978d5af080) and re-captured. (3) Kelas Percobaan never fired its load event within 45 s in headless Chromium (Cloudflare Turnstile); the platform map showed an empty frame in that capture and is not visually verified. (4) No stock search key in .env, so the hero photo is a platform __IMG__ stand-in (Unsplash, credited by the platform). (5) Unknowns left out rather than invented: email, social links, logo, Kak Yoga's background and the other 2 teachers' names, facilities, testimonials, postal code; LKP status not mentioned on the site. (6) The create/update calls went through a small script (projects/eval-kursus/mcp-call.mjs) posting to the same MCP endpoint with the env token, to keep the 45 KB of section source out of the chat; dry run before every write. Form not submitted."
+}

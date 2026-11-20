@@ -1,0 +1,91 @@
+{
+  "about": "Five short requests, each with the answers a client gives when asked. Both versions get the same requests and the same answers. Every business, person, number and address here is fictional.",
+  "cases": [
+    {
+      "id": "klinik-gigi",
+      "prompt": "Buatkan website klinik gigi di Bandung",
+      "answers": {
+        "nama": "Klinik Gigi Sekar Arum",
+        "alamat": "Jl. Sukajadi No. 214, Bandung (seberang Rumah Sakit Sukajadi, parkir 6 mobil)",
+        "dokter": "drg. Laras Pramesti (dokter gigi umum, STR aktif), drg. Bima Aditya, Sp.Ort (spesialis ortodonti, praktik Selasa dan Kamis sore)",
+        "izin": "Izin klinik pratama dari Dinas Kesehatan Kota Bandung; nomor belum dipegang, akan dikirim nanti",
+        "layanan dan harga": "Konsultasi Rp100.000; scaling Rp350.000; tambal gigi mulai Rp300.000; cabut gigi mulai Rp400.000; konsultasi behel gratis saat kontrol pertama dengan drg. Bima; behel metal mulai Rp6.500.000",
+        "jam": "Senin-Jumat 09.00-20.00, Sabtu 09.00-14.00, Minggu tutup",
+        "kontak": "WhatsApp 0812-0000-1101 (admin, untuk janji temu)",
+        "pembayaran": "Tunai, debit, QRIS; belum menerima BPJS",
+        "tujuan": "Pasien membuat janji lewat WhatsApp",
+        "foto": "Belum ada foto; pakai foto stok bila perlu",
+        "tidak tahu": "Jawab 'belum ada' untuk hal lain"
+      }
+    },
+    {
+      "id": "katering",
+      "prompt": "Website untuk katering nasi box saya di Semarang",
+      "answers": {
+        "nama": "Dapur Bu Warsini",
+        "alamat": "Jl. Pandanaran II No. 9, Semarang; dapur, bukan tempat makan",
+        "menu dan harga": "Nasi box ayam bakar Rp25.000 (nasi, ayam bakar, tempe, sambal, lalapan, air mineral); nasi box rendang Rp32.000; snack box 3 kue Rp12.000; tumpeng mini 5 orang Rp185.000",
+        "minimal pesan": "20 box, pesan paling lambat H-2",
+        "pengiriman": "Gratis ongkir dalam Kota Semarang untuk pesanan di atas 50 box; di bawah itu Rp25.000",
+        "halal": "Belum punya sertifikat halal; tidak memakai babi",
+        "kontak": "WhatsApp 0812-0000-2202",
+        "jam": "Menerima pesanan setiap hari 07.00-19.00",
+        "pelanggan": "Kantor, sekolah, acara keluarga, pengajian",
+        "tujuan": "Pesan lewat WhatsApp",
+        "foto": "Belum ada foto; pakai foto stok bila perlu",
+        "tidak tahu": "Jawab 'belum ada' untuk hal lain"
+      }
+    },
+    {
+      "id": "kontraktor",
+      "prompt": "bikin website jasa renovasi rumah, saya di Tangerang",
+      "answers": {
+        "nama": "Griya Tukang Renovasi",
+        "pemilik": "Hendra Wijaya, 12 tahun di renovasi rumah",
+        "area": "Kota dan Kabupaten Tangerang, Tangerang Selatan",
+        "layanan": "Renovasi dapur, kamar mandi, tambah lantai, atap bocor, cat ulang",
+        "harga": "Survei dan RAB gratis; renovasi ringan mulai Rp2.500.000/m2; tidak mau menulis harga borongan lain",
+        "cara kerja": "Survei, RAB tertulis, kontrak, termin 30/40/30, garansi 6 bulan untuk bocor",
+        "proyek": "Sekitar 140 rumah; belum ada foto proyek yang boleh dipakai",
+        "badan usaha": "CV, belum punya sertifikat SBU",
+        "kontak": "WhatsApp 0812-0000-3303",
+        "tujuan": "Calon klien minta survei gratis lewat WhatsApp",
+        "foto": "Belum ada foto; pakai foto stok bila perlu",
+        "tidak tahu": "Jawab 'belum ada' untuk hal lain"
+      }
+    },
+    {
+      "id": "kursus",
+      "prompt": "Website kursus bahasa Inggris anak di Jogja",
+      "answers": {
+        "nama": "Kelas Kancil English",
+        "alamat": "Jl. Kaliurang Km 6,5, Gang Pandega, Sleman",
+        "program": "Kids (6-9 tahun) dan Juniors (10-13 tahun); kelas maksimal 8 anak; 2x seminggu 60 menit",
+        "biaya": "Pendaftaran Rp150.000; Rp450.000 per bulan; kelas percobaan gratis 1x",
+        "pengajar": "Kak Dinda (S.Pd. Bahasa Inggris), Kak Yoga; 4 pengajar total",
+        "jadwal": "Senin-Jumat 15.00-18.00, Sabtu 09.00-12.00",
+        "izin": "Belum terdaftar sebagai LKP",
+        "kontak": "WhatsApp 0812-0000-4404",
+        "tujuan": "Orang tua mendaftar kelas percobaan gratis",
+        "foto": "Belum ada foto; pakai foto stok bila perlu",
+        "tidak tahu": "Jawab 'belum ada' untuk hal lain"
+      }
+    },
+    {
+      "id": "laundry",
+      "prompt": "tolong buatin web laundry kiloan di Depok",
+      "answers": {
+        "nama": "Laundry Kilat Margonda",
+        "alamat": "Jl. Margonda Raya No. 388, Depok (dekat stasiun Pondok Cina)",
+        "harga": "Cuci setrika Rp8.000/kg (2 hari), kilat 1 hari Rp12.000/kg, express 6 jam Rp16.000/kg; minimal 3 kg; bed cover Rp25.000",
+        "antar jemput": "Gratis antar jemput radius 3 km, minimal 5 kg",
+        "jam": "Setiap hari 07.00-21.00",
+        "pelanggan": "Mahasiswa UI dan Gunadarma, karyawan kos",
+        "kontak": "WhatsApp 0812-0000-5505",
+        "tujuan": "Minta jemput cucian lewat WhatsApp",
+        "foto": "Belum ada foto; pakai foto stok bila perlu",
+        "tidak tahu": "Jawab 'belum ada' untuk hal lain"
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "case": "katering",
+  "version": "before",
+  "site_id": "sk51xh4g75jr2neidaspobdz",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Menu & Harga",
+      "slug": "menu"
+    },
+    {
+      "title": "Cara Pesan & Kontak",
+      "slug": "pesan"
+    }
+  ],
+  "notes": "Draft only, not published (stopped before the publish gate). Subdomain: dapurbuwarsini was free at plan time, then another site on the same account (ichf72xjftie44kmqcfcn16y) took it before the draft dry run, so the platform's suggestion dapurbuwarsini-id was used (logged; shown at the draft gate). No stock-photo key in .env, so the only photo is a platform __IMG__ stand-in from Unsplash in the hero, alt-labelled as an illustration. Verify found and fixed one blocker: on phones the free-plan 'Dibuat dengan webto.id' strip covered the calculator's sticky total bar (update_site, menu-kalkulator v2, revision s1-54f5a036ec2b65ea). Not verified: the platform Google map painted as an empty frame in headless captures. Open points for the owner: whether snack box counts toward the 20-box minimum and the 50-box free-delivery threshold, and how tumpeng mini counts (the calculator counts snack box and not tumpeng, and the estimate says the total is confirmed on WhatsApp). The platform labels the contact hours row 'Jam buka' although it is order-taking time. Unknown and left out: email, social media, logo, own photos, testimonials, contents of the rendang/snack/tumpeng items, payment method, postal code. Halal is stated honestly as 'belum bersertifikat, tidak memakai babi'. Handoff stage not run because it comes after publish."
+}

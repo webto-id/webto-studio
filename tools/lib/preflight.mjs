@@ -5,7 +5,7 @@ import { ROOT, loadConfig, now } from "./core.mjs";
 
 const CORE_SKILLS = ["html-to-webto-variant", "webto-website", "html-to-webto-template", "webto-3d-effects"];
 
-async function rpc(url, token, method, params) {
+export async function rpc(url, token, method, params) {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
@@ -23,7 +23,7 @@ async function rpc(url, token, method, params) {
 }
 
 /** A tool result arrives as text content; most of the platform's are JSON. */
-function toolPayload(result) {
+export function toolPayload(result) {
   const text = result?.content?.find?.((c) => c.type === "text")?.text;
   if (text === undefined) return result ?? null;
   try {

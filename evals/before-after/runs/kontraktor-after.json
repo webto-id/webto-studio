@@ -1,0 +1,28 @@
+{
+  "case": "kontraktor",
+  "version": "after",
+  "site_id": "irabgqd3rreqgid753sdgfvw",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Layanan & Harga",
+      "slug": "layanan"
+    },
+    {
+      "title": "Cara Kerja",
+      "slug": "cara-kerja"
+    }
+  ],
+  "notes": "Draft only, not published (subdomain griya-tukang-renovasi checked free). Concept: house cross-section drawing with five red-pencil numbered marks for the five services; no photos used because the owner has none that may be used and stock may not pose as their work. Blind critic: pass 1 7.15, pass 2 7.15 (bar 7, min 6, met), both independent subagents. Open items: no address/hours/email/logo/testimonials ('belum ada'), so structured data has no address (audit warning); console errors on form pages come from the platform's Turnstile widget, and the gap above the form's submit button is its slot; critics asked for project photos and concrete scope per service, which need facts the owner has not given. Stock photo search was not configured, and no image generation was used. The large create_site/update_site payloads were sent to the same webto MCP endpoint by a small local script (tmp/mcp-call.mjs) rather than inline tool calls, with dry run before every confirm. The lock was updated after one update_site (revision s1-919d6a04b86d93b8)."
+}

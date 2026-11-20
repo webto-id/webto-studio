@@ -1,0 +1,28 @@
+{
+  "case": "katering",
+  "version": "after",
+  "site_id": "ichf72xjftie44kmqcfcn16y",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Paket & Harga",
+      "slug": "paket-harga"
+    },
+    {
+      "title": "Cara Pesan",
+      "slug": "cara-pesan"
+    }
+  ],
+  "notes": "Draft only, not published (subdomain dapurbuwarsini reserved for publish). Concept 'Nota pesanan': the site is the kitchen's order slip, and Paket & Harga has a working calculator that applies the owner's rules (min 20 box, free delivery above 50 box, otherwise Rp25.000) and sends the filled order as the WhatsApp message (click-tested). Interpretation recorded at the plan gate: nasi box + snack box count toward the 20/50 box rules, tumpeng does not; shown as an estimate. No halal or 'tanpa babi' wording (no BPJPH certificate, kuliner playbook rule). No photos: the owner has none and stock may not stand in for dishes, so the site uses line drawings and stamps; .env had no stock key, so no stock photo was used at all. Things that went wrong and were fixed on the draft: a stagger entrance left the audience list blank in the 1280 capture; platform labels 'Jam buka/Telepon' were misleading for a kitchen; oldstyle figures made 'Rp0' read 'Rpo'; the phone total bar covered calculator rows. create_site/update_site were called through a small local script (projects/eval-katering/scripts/mcp-call.mjs) against the same MCP endpoint, so the 67 KB bundle did not have to be pasted inline. Dry run first every time. The lock revision string stayed s1-66bab437263404cd after the second update, but the screenshots show the changes are live. Blind critic: pass 1 7.1, pass 2 7.45 (independent subagents; bar 7). Open polish from pass 2: food photos (need the owner's), floating WhatsApp bubble over calculator rows on phones (platform button), tablet hero composition, stamp variety, footer as nota lines. Search audit: no problems; noindex expected on the draft. Not checked: dark mode on the real draft (site fixed to light), opened phone menu on the real draft."
+}

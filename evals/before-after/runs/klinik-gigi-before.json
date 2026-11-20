@@ -1,0 +1,32 @@
+{
+  "case": "klinik-gigi",
+  "version": "before",
+  "site_id": "omjuuiz5lsb3xaxcr55i8rl2",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Layanan & Tarif",
+      "slug": "layanan"
+    },
+    {
+      "title": "Dokter",
+      "slug": "dokter"
+    },
+    {
+      "title": "Kontak",
+      "slug": "kontak"
+    }
+  ],
+  "notes": "Draft only, not published (stopped before the publish stage). Subdomain gigisekararum reserved for publishing. 12 own WVF variants; the map uses the platform 'default' variant (iframe not allowed in WVF). Stock photo search was not configured in .env, so the hero uses a platform __IMG__ stand-in (Unsplash, credited automatically); no images were generated. One defect was found on the real draft: the CTA band was empty on the long pages because its reveal-up entrance effect never fired. Removing the effect fixed it (update_site, cta-sekar v2), checked by re-capture. Not shown because the client has not sent them yet: clinic licence number, STR number, email, social links, logo, real photos, testimonials, and the exact hours of drg. Bima's 'sore'. The embedded map renders blank in headless screenshots and was not visually confirmed. The mobile menu was not clicked through with a browser tool."
+}

@@ -1,0 +1,24 @@
+{
+  "case": "laundry",
+  "version": "after",
+  "site_id": "jur4yfnvx384flxz5ik490vh",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Antar Jemput",
+      "slug": "antar-jemput"
+    }
+  ],
+  "notes": "Stopped before publish, as the eval rules require; the site is a draft at revision s1-de6f14f104fda072, intended subdomain laundrykilatmargonda (checked free, not published). Concept 'Nota timbang': the site is set as the laundry's nota, and the price list is a working calculator (service + kg, minimum 3 kg, free-pickup stamp from 5 kg) that sends the filled nota to WhatsApp; the Antar Jemput page has a WhatsApp-mode form. The calculator was clicked through on the real draft and gave correct totals and message text. Blind critic: pass 1 scored 6.95, under the bar of 7; after fixes, pass 2 scored 7.15 (design 7.5, usability 6.5, distinctiveness 7.5, content 7), bar met, both critics independent subagents. The first pass-2 critic was cut off by a usage limit before writing anything; a fresh critic ran pass 2 on the same screenshots. Search audit: no problems on either page (noindex expected on a draft). What went wrong along the way: the steps section was invisible on the real draft at 390 px because the platform stagger entrance never fired (effect removed); the form page scrolled sideways by 57 px from a long select placeholder (fixed); t() labels rendered as raw keys in local preview (replaced with fields); the first validator run rejected Array.prototype in the script. Still open: the antar-jemput page logs console errors from Cloudflare Turnstile (the platform's form bot check, third party); no photos anywhere because the owner has none and stock may not stand in for the real outlet (the plan gate mentioned one stock illustration, which was then dropped); critic polish items left open (same default tick in hero and calculator, sticky form column, the 'SYARAT JEMPUT' wrap at 390 px, outlet block as a receipt slip). The create_site and update_site calls went to the configured webto MCP server (staging URL from WEBTO_MCP_URL) through a small script (build/mcp-call.mjs), dry run first every time, so the 75 KB of section source did not have to be retyped into a tool call. Not provided by the user and left out: email, social links, logo, testimonials, garansi, payment methods, pickup cost outside 3 km or under 5 kg."
+}

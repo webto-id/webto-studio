@@ -4,3 +4,4 @@ projects/*
 !projects/.gitkeep
 *.log
 .DS_Store
+evals/before-after/logs/

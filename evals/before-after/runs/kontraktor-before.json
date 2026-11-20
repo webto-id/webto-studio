@@ -1,0 +1,32 @@
+{
+  "case": "kontraktor",
+  "version": "before",
+  "site_id": "gqwse0o4t9hrl1ztckv6nhap",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Layanan & Biaya",
+      "slug": "layanan"
+    },
+    {
+      "title": "Tentang",
+      "slug": "tentang"
+    },
+    {
+      "title": "Kontak",
+      "slug": "kontak"
+    }
+  ],
+  "notes": "Stopped before publish; the site is a draft (not published). Subdomain: the planned griya-tukang-renovasi was free at the plan stage but was taken by another draft in the same account (id irabgqd3rreqgid753sdgfvw, not created by this project and not touched) by the time of the create_site dry run, so griya-tukang-renovasi-tangerang was used and disclosed at the draft gate. No stock library key in .env, so images are platform __IMG__ stand-ins (6 photos, each labeled 'Foto ilustrasi'); no image generation. The local variant-check is compiler 0.1.27; the server dry run (latest compiler) reported 0 errors/0 warnings on all 14 variants. MCP calls were made through a small Node script (mcp-call.mjs) that reads the token from the environment, because the bundle was too large to paste inline; dry run before the confirmed write. Full-page screenshots show reveal-on-scroll sections empty and the platform's fixed 'Dibuat dengan webto.id' bar over mid-page content; reduced-motion captures confirm all content renders. Not checked: real-draft dark mode (site is fixed to light), form submission (would message the real number), clicking through the navigation. Left out for lack of facts: project photos, testimonials, address/map, hours, email, social links, logo. SBU status not mentioned; no certification claimed."
+}

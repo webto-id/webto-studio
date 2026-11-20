@@ -1,0 +1,28 @@
+{
+  "case": "laundry",
+  "version": "before",
+  "site_id": "jzd8lhgi5g3z9hr2ze8d2p5q",
+  "stages_done": [
+    "preflight",
+    "brief",
+    "plan",
+    "build",
+    "draft",
+    "verify"
+  ],
+  "pages": [
+    {
+      "title": "Beranda",
+      "slug": ""
+    },
+    {
+      "title": "Harga",
+      "slug": "harga"
+    },
+    {
+      "title": "Lokasi & Kontak",
+      "slug": "kontak"
+    }
+  ],
+  "notes": "Site is saved as a DRAFT and was not published (publish_site never called). Subdomain laundry-kilat-margonda was checked and is free, but no user answer covered it, so I proposed it from the business name. The stock photo search key was not configured, so the hero photo is a platform __IMG__ stand-in (Unsplash, credited automatically). No image or 3D generation was used. Unanswered interview rows (email, social, logo, look, testimonials, guarantee, postal code, page structure) went into brief.declined as 'belum ada'. Site language was not answered, so I chose Indonesian (logged). Verify: the first full-page capture showed blank sections because the entrance reveal effects had not fired; a reduced-motion capture confirmed all content renders. The platform map iframe stayed empty in the headless capture and is not visually confirmed. The free-plan 'Dibuat dengan webto.id' badge is fixed at the viewport bottom. 'region: Jawa Barat' in businessProfile is general geography, not from the user."
+}

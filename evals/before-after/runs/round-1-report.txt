@@ -1,0 +1,32 @@
+case          version  overall  design  usability  distinctiveness  content
+katering      after       7.30    7.50       7.00             7.50     7.00
+katering      before      6.40    6.50       6.00             6.50     7.00
+klinik-gigi   after       7.40    7.50       7.50             7.00     7.50
+klinik-gigi   before      6.60    6.50       6.50             6.50     7.50
+kontraktor    after       7.15    7.50       6.50             7.50     7.00
+kontraktor    before      6.50    6.50       6.00             7.00     7.00
+kursus        after       6.95    7.00       6.50             7.50     7.00
+kursus        before      6.35    6.50       5.50             7.00     7.00
+laundry       after       7.35    7.50       7.00             7.50     7.50
+laundry       before      7.00    7.00       7.00             7.00     7.00
+
+before  mean overall 6.57; design 6.60, usability 6.20, distinctiveness 6.80, content 7.10
+after   mean overall 7.23; design 7.40, usability 6.90, distinctiveness 7.40, content 7.20
+after minus before, per case: 0.80, 0.90, 0.65, 0.60, 0.35; better in 5 of 5
+
+Candidate bars (overall / every criterion at least): sites passing, before vs after
+  6   / 5:  before 5/5   after 5/5
+  6   / 6:  before 4/5   after 5/5
+  6   / 7:  before 1/5   after 3/5
+  6.5 / 5:  before 3/5   after 5/5
+  6.5 / 6:  before 3/5   after 5/5
+  6.5 / 7:  before 1/5   after 3/5
+  7   / 5:  before 1/5   after 4/5
+  7   / 6:  before 1/5   after 4/5
+  7   / 7:  before 1/5   after 3/5
+  7.5 / 5:  before 0/5   after 0/5
+  7.5 / 6:  before 0/5   after 0/5
+  7.5 / 7:  before 0/5   after 0/5
+  8   / 5:  before 0/5   after 0/5
+  8   / 6:  before 0/5   after 0/5
+  8   / 7:  before 0/5   after 0/5

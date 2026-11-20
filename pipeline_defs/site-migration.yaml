@@ -14,8 +14,9 @@ core_skills: [webto-website, html-to-webto-variant]
 optional_skills: [webto-3d-effects]
 orchestration:
   max_revisions_per_stage: 3
-# The blind critic's bar for the verify stage (skills/meta/critic.md). Tentative:
-# tuned once the before/after eval has run.
+# The blind critic's bar for the verify stage (skills/meta/critic.md). Set from the
+# before/after eval (evals/before-after/README.md): no site of the old studio met it,
+# four of five of the new did, and 7.5 was met by none.
 quality_bar:
   overall: 7
   min: 6

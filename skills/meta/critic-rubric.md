@@ -18,6 +18,12 @@ understands at once, and that works on a phone in one hand.
   orientation from these.
 - `-part-<n>.png`: a long page cut top to bottom into parts at real size, in
   place of the whole-page file. Read them in order.
+- What stays fixed on the screen while the page scrolls (a floating WhatsApp
+  button, a sticky order bar, the platform's "Dibuat dengan webto.id" bar)
+  appears only in the `-fold.png` shots. The whole-page and part shots leave
+  it out, because a still would pin it over whatever happened to be under it.
+  Judge what it covers, and whether it crowds the phone screen, from the fold
+  shots alone.
 - Widths: 390 (a phone), 768 (a tablet), 1280 (a laptop). `dark`: the visitor's
   device asks for dark. `still`: the visitor asked for reduced motion.
 - `shots/index.json`: per screenshot, `overflowPx` (the page scrolls sideways
