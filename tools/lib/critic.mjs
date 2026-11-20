@@ -37,11 +37,14 @@ function readIndex(dir) {
 }
 
 /** Screenshots of real pages: local section previews are the builder's, not the visitor's. */
-function visitorShots(index) {
-  return (index?.shots ?? []).filter((s) => !s.local);
+function visitorShots(index, pipeline) {
+  // A template's dark option exists only as a local preview until a buyer switches to it.
+  const darkOption = (s) => pipeline?.name === "template-for-sale" && s.local && s.tag === "local-dark";
+  return (index?.shots ?? []).filter((s) => !s.local || darkOption(s));
 }
 
 function describe(s) {
+  if (s.local && s.tag === "local-dark") return [s.label, `${s.width} px`, "the dark option a buyer can switch to, a preview of the sections without the site's chrome"].join(", ");
   return [s.label, `${s.width} px`, s.scheme === "dark" ? "dark" : "light", s.reducedMotion ? "reduced motion" : null].filter(Boolean).join(", ");
 }
 
@@ -49,8 +52,8 @@ function describe(s) {
 export function criticBrief(dir, pipeline) {
   const index = readIndex(dir);
   if (!index) throw new StudioError("No screenshots yet. Capture the draft's real pages with \"studio shoot\" first");
-  const shots = visitorShots(index);
-  if (!shots.length) throw new StudioError("Only local previews were captured. Capture the draft's real pages with \"studio shoot\"");
+  const shots = visitorShots(index, pipeline);
+  if (!shots.some((s) => !s.local)) throw new StudioError("Only local previews were captured. Capture the draft's real pages with \"studio shoot\"");
   const bar = qualityBar(pipeline);
   const passes = listPasses(dir);
   const last = passes.at(-1);

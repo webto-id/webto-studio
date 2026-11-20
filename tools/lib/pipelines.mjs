@@ -192,6 +192,35 @@ function seoPlanProblems(dir, rel, seo, problems, warnings) {
   }
 }
 
+/** The colour mode the direction chose, or null before there is one. */
+function colorModeOf(dir) {
+  try {
+    return readJson(join(dir, "design_direction.json")).color_mode?.mode ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The dark the critic must see. A site that follows the visitor shows its dark palette to
+ * every visitor whose device is dark, so every real page needs a dark capture. A template's
+ * buyer can switch it to dark, so it needs the dark local previews at least.
+ */
+export function darkShotProblems(dir, pipeline) {
+  const mode = colorModeOf(dir);
+  const p = join(dir, "shots", "index.json");
+  if (!mode || !existsSync(p)) return [];
+  const shots = readJson(p).shots ?? [];
+  if (mode === "system") {
+    const real = shots.filter((s) => !s.local);
+    const missing = [...new Set(real.map((s) => s.label))].filter((l) => !real.some((s) => s.label === l && s.scheme === "dark"));
+    if (missing.length) return [`color_mode is "system", and ${missing.join(", ")} has no dark capture. Run "studio shoot <project> ... --dark" on the real pages, then a new critic pass`];
+  } else if (pipeline.name === "template-for-sale" && !shots.some((s) => s.local && s.tag === "local-dark")) {
+    return ['A buyer can switch this template to dark, and no dark preview was captured. Build the previews with --theme dark and capture them with --tag local-dark (template build director, step 8), then a new critic pass'];
+  }
+  return [];
+}
+
 function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
   const { def, rel, abs } = artifactPath(dir, pipeline, name, stage);
   if (name === "audit") {
@@ -201,6 +230,7 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
     return existsSync(abs) ? { name, path: rel } : null;
   }
   if (name === "critique") {
+    problems.push(...darkShotProblems(dir, pipeline));
     const r = judgeCritique(dir, pipeline, { belowBar: opts.belowBar });
     problems.push(...r.problems);
     opts.warnings?.push(...r.warnings);
@@ -255,6 +285,18 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
     }
   }
   if (name === "design_direction" && data?.concept) conceptProblems(rel, data.concept, problems);
+  if (name === "design_direction" && data?.color_mode) {
+    const needDark = data.color_mode.mode === "system" || pipeline.name === "template-for-sale";
+    const missing = ["primary", "background", "foreground"].filter((k) => !data.palette?.dark?.[k]);
+    if (needDark && missing.length) {
+      problems.push(`${rel}: ${data.color_mode.mode === "system" ? 'color_mode "system" shows the dark palette to every visitor whose device is set to dark' : "a buyer can switch a template to dark"}, so palette.dark needs ${missing.join(", ")}`);
+    }
+  }
+  if (name === "bundle" && data) {
+    const mode = colorModeOf(dir);
+    const built = data.theme?.colorMode ?? "light";
+    if (mode && built !== mode) problems.push(`${rel}: theme.colorMode is "${built}", design_direction.json says "${mode}". Make them the same`);
+  }
   if (name === "site_plan" && data) layoutProblems(rel, data, problems);
   if (name === "seo_plan" && data) seoPlanProblems(dir, rel, data, problems, opts.warnings ?? []);
   if (name === "brief" && Array.isArray(data?.open_questions) && data.open_questions.length > 0) {

@@ -65,8 +65,10 @@ site/assets/<file>
    browser: `node tools/studio.mjs shoot <project> --page <key>=file:///<absolute path to preview-<key>.html> --tag local`.
    A local preview has its palette baked in, so the dark one is a second
    file: build it with `--theme dark --out preview-<key>-dark.html` and
-   capture that with `--tag local-dark`. Skip dark only when the site has no
-   dark palette, and say so in the review.
+   capture that with `--tag local-dark`. With `color_mode` `light` or `dark`
+   one palette is enough: skip the second file and say so in the review.
+   Set `theme.colorMode` in the bundle to the direction's mode; the
+   checkpoint compares them.
 9. **Review** following `skills/meta/reviewer.md`; write `review/build.json`.
 
 Any edit after step 7 means running `check` again: the checkpoint compares

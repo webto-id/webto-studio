@@ -63,6 +63,7 @@ const direction = (extra = {}) => ({
   concept: concept(),
   language: "Warm paper tones, hand-set headings, photos tilted a few degrees like snapshots on a counter.",
   palette: { primary: "#b45309", background: "#fffbeb", foreground: "#1c1917" },
+  color_mode: { mode: "light", why: "Paper and daylight are the concept; a dark night version has no place in it" },
   fonts: { heading: "Fraunces", body: "Inter" },
   moves: ["Headings in a serif with tight leading", "Photos tilted two degrees with a soft shadow"],
   avoid: ["A corporate blue gradient hero"],
@@ -174,6 +175,11 @@ test("build needs a passing check of the bundle as it is on disk, and a passing 
   writeJson(join(dir, "review", "build.json"), review("build"));
   writeFileSync(join(dir, "site", "sections", "hero-warung.astro"), "<section>changed</section>");
   assert.throws(() => writeCheckpoint(slug, "build"), /bundle changed after it was checked/);
+  writeBundle("<section>changed</section>");
+  // The bundle's colour mode follows the direction's.
+  writeFileSync(join(dir, "site", "site.json"), JSON.stringify({ theme: { colorMode: "system" } }));
+  writeJson(join(dir, "reports", "check.json"), { ok: true, bundleHash: hashBundle(join(dir, "site")) });
+  assert.throws(() => writeCheckpoint(slug, "build"), /theme\.colorMode is "system", design_direction\.json says "light"/);
   writeBundle("<section>changed</section>");
   writeCheckpoint(slug, "build");
   // The lock file and local previews do not count as a change to the bundle.
@@ -862,8 +868,13 @@ test("a template's concept names its playbook, and the category follows it", () 
   writeCheckpoint(s, "preflight");
   const c = { for_whom: "A neighbourhood warung that takes orders on WhatsApp", promise: "A menu with prices people can order from", differentiator: "The menu is set like the shop's own price board", category: "Kuliner", pages: ["Beranda"] };
   writeJson(join(d, "concept.json"), c);
-  writeJson(join(d, "design_direction.json"), direction({ concept: concept({ candidates: [{ ...candidate("Senja", "name"), anchor_source: "category" }, { ...candidate("Papan harga", "place"), anchor_source: "category" }, { ...candidate("Satu nota", "system"), anchor_source: "category" }] }) }));
+  const dd = direction({ concept: concept({ candidates: [{ ...candidate("Senja", "name"), anchor_source: "category" }, { ...candidate("Papan harga", "place"), anchor_source: "category" }, { ...candidate("Satu nota", "system"), anchor_source: "category" }] }) });
+  writeJson(join(d, "design_direction.json"), dd);
   writeJson(join(d, "site_plan.json"), plan());
+  writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner" });
+  assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /a buyer can switch a template to dark, so palette.dark needs primary, background, foreground/);
+  writeJson(join(d, "design_direction.json"), { ...dd, palette: { ...dd.palette, dark: { primary: "#f59e0b", background: "#1c1917", foreground: "#fafaf9" } } });
+  writeJson(join(d, "concept.json"), c);
   assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /no "playbook"/);
   writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner", category: "Bisnis & Jasa" });
   assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /category "Bisnis & Jasa" does not match the playbook's "Kuliner"/);
@@ -871,4 +882,32 @@ test("a template's concept names its playbook, and the category follows it", () 
   assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /written for businesses in ID.*this business is in AU/);
   writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner" });
   writeCheckpoint(s, "concept", { approved: "ya" });
+});
+
+// ── colour mode ───────────────────────────────────────────────────────────
+test("a site that follows the visitor needs a dark palette, and every real page captured in dark", async () => {
+  const { darkShotProblems } = await import("../tools/lib/pipelines.mjs");
+  const s = `cm${n}`;
+  const d = createProject(s, "client-site").dir;
+  writeJson(join(d, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(s, "preflight");
+  writeJson(join(d, "brief.json"), brief());
+  writeCheckpoint(s, "brief");
+  writeJson(join(d, "design_direction.json"), direction({ color_mode: { mode: "system", why: "Visitors order late at night on their phones" } }));
+  writeJson(join(d, "site_plan.json"), plan());
+  writeJson(join(d, "seo_plan.json"), seoPlan());
+  assert.throws(() => writeCheckpoint(s, "plan", { approved: "ya" }), /color_mode "system" shows the dark palette.*palette.dark needs primary, background, foreground/);
+  const pipeline = { name: "client-site" };
+  const shot = (label, scheme, extra = {}) => ({ label, width: 390, scheme, file: `shots/${label}-${scheme}.png`, ...extra });
+  writeJson(join(d, "shots", "index.json"), { at: "t", shots: [shot("home", "light"), shot("menu", "light"), shot("home", "dark")] });
+  assert.match(darkShotProblems(d, pipeline).join(), /"system", and menu has no dark capture/);
+  writeJson(join(d, "shots", "index.json"), { at: "t", shots: [shot("home", "light"), shot("menu", "light"), shot("home", "dark"), shot("menu", "dark")] });
+  assert.deepEqual(darkShotProblems(d, pipeline), []);
+  // A light site needs no dark run; a template always needs its dark option.
+  writeJson(join(d, "design_direction.json"), direction());
+  writeJson(join(d, "shots", "index.json"), { at: "t", shots: [shot("home", "light")] });
+  assert.deepEqual(darkShotProblems(d, pipeline), []);
+  assert.match(darkShotProblems(d, { name: "template-for-sale" }).join(), /no dark preview was captured/);
+  writeJson(join(d, "shots", "index.json"), { at: "t", shots: [shot("home", "light"), shot("home", "light", { local: true, tag: "local-dark", file: "shots/home-local-dark.png" })] });
+  assert.deepEqual(darkShotProblems(d, { name: "template-for-sale" }), []);
 });

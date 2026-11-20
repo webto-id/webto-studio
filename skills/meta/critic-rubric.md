@@ -26,6 +26,11 @@ understands at once, and that works on a phone in one hand.
   shots alone.
 - Widths: 390 (a phone), 768 (a tablet), 1280 (a laptop). `dark`: the visitor's
   device asks for dark. `still`: the visitor asked for reduced motion.
+- When dark shots are listed, the site shows them to real visitors: judge
+  them as carefully as the light ones, and score design and usability on the
+  weaker of the two. A template's `local-dark` shots are the dark option its
+  buyer can switch to, shown as sections without the site's navbar and
+  footer; judge the sections, not the missing chrome.
 - `shots/index.json`: per screenshot, `overflowPx` (the page scrolls sideways
   by that much), `brokenImages`, `consoleErrors`, `title`, `loadError`.
 

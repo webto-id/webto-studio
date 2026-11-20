@@ -56,7 +56,8 @@ Show the user, in their language:
   other two candidates in one line each, so the user can pick another;
 - the pages, and under each its sections in one line apiece, and the search
   it is meant to be found by, with its title;
-- the direction in two or three sentences, with the palette and the fonts;
+- the direction in two or three sentences, with the palette, the fonts and
+  the colour mode (light, dark, or following the visitor's device);
 - the address;
 - for a migration, the pages that are merged or dropped;
 - anything from the brief that will not appear, and why.

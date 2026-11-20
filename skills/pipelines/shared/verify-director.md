@@ -22,10 +22,13 @@ the real navigation, the real images.
    node tools/studio.mjs shoot <project> --page home=<url> ... --dark
    ```
 
-   `--dark` asks for the page as a visitor whose device is set to dark. It
-   shows the dark palette only on a site whose colour mode follows the
-   visitor; on a site fixed to light or dark the two runs look the same, and
-   one is enough.
+   `--dark` asks for the page as a visitor whose device is set to dark.
+   With `color_mode` `system` it is required for every page: the checkpoint
+   refuses verify until each real page has a dark capture, and the critic's
+   last pass must be on them. With `light` or `dark` the two runs look the
+   same; skip it. A template keeps its `--tag local-dark` previews from the
+   build stage: they are its dark option, the critic sees them, and the
+   checkpoint refuses verify without them.
 
    `landing-3d` also runs it with `--reduced-motion`: the page must read
    complete with only the poster showing.

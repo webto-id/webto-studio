@@ -3,7 +3,7 @@
   "title": "design_direction",
   "description": "One design language for the whole site, decided before any section is written.",
   "type": "object",
-  "required": ["concept", "language", "palette", "fonts", "moves", "avoid"],
+  "required": ["concept", "language", "palette", "color_mode", "fonts", "moves", "avoid"],
   "properties": {
     "concept": {
       "type": "object",
@@ -73,6 +73,15 @@
       }
     },
     "language": { "type": "string", "minLength": 20, "description": "Two or three sentences a designer would recognise. Not a list of adjectives." },
+    "color_mode": {
+      "type": "object",
+      "description": "Whether the site is always light, always dark, or follows the visitor's device (system). system needs a full palette.dark",
+      "required": ["mode", "why"],
+      "properties": {
+        "mode": { "enum": ["light", "dark", "system"] },
+        "why": { "type": "string", "minLength": 10, "description": "Why this mode serves this business and this concept" }
+      }
+    },
     "palette": {
       "type": "object",
       "required": ["primary", "background", "foreground"],

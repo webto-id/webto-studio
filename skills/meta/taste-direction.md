@@ -22,6 +22,14 @@ Write down, in `design_direction.json`:
 - **`palette`**: start from what the business already owns (a logo colour, the
   shop front, the packaging). One primary, one quiet secondary, at most one
   accent. Check the contrast of text on every surface you plan to use.
+- **`color_mode`**: `light`, `dark` or `system`, with why. `light` is the
+  default and is always safe. `dark` when the concept is a dark one (a bar at
+  night, a cinema, a tattoo studio): the site is dark for everyone. `system`
+  follows the visitor's device, so roughly half of phones at night see the
+  dark palette: choose it only when you will design that palette as carefully
+  as the light one, and write it in `palette.dark` (primary, background,
+  foreground at least). A template always needs `palette.dark`, because its
+  buyer can switch to dark whatever you choose.
 - **`fonts`**: one for headings, one for body, from the platform's list in
   `skills/core/webto-website/references/site-json.md`. Pick the heading font
   for character and the body font for reading.
