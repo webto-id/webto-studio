@@ -94,9 +94,12 @@ Empat hal masuk ke setiap situs, sependek apa pun permintaannya:
   lainnya tampil di gerbang rencana.
 - **Kritikus buta.** Setelah draft ada di platform, agen baru yang tidak
   pernah melihat rencana maupun kodenya menilai halaman sungguhan hanya dari
-  tangkapan layar: desain, kemudahan pakai, kekhasan, dan isi. Daftar
-  perbaikannya menjadi pekerjaan agen pembuat sampai situs mencapai ambang,
-  atau Anda menerimanya apa adanya.
+  tangkapan layar: desain, kemudahan pakai, kekhasan, dan isi. Kalau situs
+  bergerak, kritikus juga melihat bingkai tiap section yang bergerak, digulir
+  di ponsel yang diperlambat seperti Android kelas menengah; animasi yang
+  tersendat, konten yang tak pernah muncul, atau canvas kosong menahan situs
+  dari terbit. Daftar perbaikannya menjadi pekerjaan agen pembuat sampai
+  situs mencapai ambang, atau Anda menerimanya apa adanya.
 - **Ditulis untuk ditemukan.** Bersama halaman, agen merencanakan pencarian
   yang dijawab tiap halaman ("klinik gigi anak dago bandung"), judul,
   deskripsi, dan judul utamanya, serta fakta usaha yang menjadi data

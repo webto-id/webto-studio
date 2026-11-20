@@ -10,7 +10,7 @@ const DEFAULT_WIDTHS = [390, 768, 1280];
 const VIEW_HEIGHT = 900;
 const MAX_PARTS = 12;
 
-function parsePages(pages, urls) {
+export function parsePages(pages, urls) {
   const out = [];
   for (const p of pages) {
     const i = p.indexOf("=");

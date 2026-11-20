@@ -36,6 +36,12 @@ function readIndex(dir) {
   return existsSync(p) ? readJson(p) : null;
 }
 
+/** When the motion was last measured, or null when it never was. */
+function readMotionAt(dir) {
+  const p = join(dir, "motion", "index.json");
+  return existsSync(p) ? (readJson(p).at ?? null) : null;
+}
+
 /** Screenshots of real pages: local section previews are the builder's, not the visitor's. */
 function visitorShots(index, pipeline) {
   // A template's dark option exists only as a local preview until a buyer switches to it.
@@ -66,8 +72,8 @@ export function criticBrief(dir, pipeline) {
     // An unreadable or malformed pass is redone under its own number; a valid one is final,
     // so a score cannot be re-rolled on the same screenshots.
     if (!earlier || schemaErrors(earlier).length) n = last.n;
-    else if (earlier.shots_at === index.at) {
-      throw new StudioError(`Pass ${last.n} already judged these screenshots. A new pass needs new screenshots, taken after the fixes`);
+    else if (earlier.shots_at === index.at && (earlier.motion_at ?? null) === readMotionAt(dir)) {
+      throw new StudioError(`Pass ${last.n} already judged these screenshots. A new pass needs new screenshots (or a new motion run), taken after the fixes`);
     }
   }
   if (n > bar.max_passes) {
@@ -83,6 +89,26 @@ export function criticBrief(dir, pipeline) {
     if (s.parts?.length) s.parts.forEach((p, i) => lines.push(`  ${join(dir, p)}  (${describe(s)}, part ${i + 1} of ${s.parts.length}, top to bottom)`));
     else lines.push(`  ${join(dir, s.file)}  (${describe(s)}, whole page)`);
   }
+  // Motion frames, when the site was measured moving: two per spot, as it enters and once settled.
+  const motionPath = join(dir, "motion", "index.json");
+  const motionIndex = existsSync(motionPath) ? readJson(motionPath) : null;
+  const motionLines = [];
+  for (const r of motionIndex?.runs ?? []) {
+    for (const f of r.frames ?? []) {
+      const where = `${r.label}, ${r.width} px${r.reducedMotion ? ", reduced motion" : ""}, scrolled to ${f.y} px (${f.why})`;
+      if (f.enter) motionLines.push(`  ${join(dir, f.enter)}  (${where}: the moment it comes into view)`);
+      if (f.settled) motionLines.push(`  ${join(dir, f.settled)}  (${where}: 0.7 s later, at rest)`);
+    }
+  }
+  const motionStep = motionLines.length
+    ? [
+        "4. How the site moves: pairs of frames at each spot that moves, scrolled on a phone slowed to a mid-range Android's and on a laptop. Open them all:",
+        ...motionLines,
+        "   The motion measurements (slow frames, blocked time, layout shift, pins, empty canvases, entrance effects that never ran) are in:",
+        `  ${motionPath}`,
+      ].join("\n") + "\n"
+    : "";
+  const stamp = `"pass": ${n}, "critic": "subagent", "shots_at": "${index.at}"${motionIndex ? `, "motion_at": "${motionIndex.at}"` : ""}`;
   const text = `You are judging a website you have never seen. You get only evidence: screenshots and measurements.
 
 1. Read the rubric: ${RUBRIC}
@@ -90,12 +116,12 @@ export function criticBrief(dir, pipeline) {
 ${lines.join("\n")}
 3. The measurements for each screenshot (sideways overflow in px, images that failed to load, console errors, the page title) are in:
   ${join(dir, "shots", "index.json")}
-
+${motionStep}
 Open nothing else. Do not visit the site, search the web, or read any other file in that folder or the folders around it: no brief, plan, design notes, code, decision log or earlier critique. What these files cannot show, list in "not_judged".
 
 Write your verdict as JSON, in the shape the rubric's "The file" section gives, to:
   ${out}
-with "pass": ${n}, "critic": "subagent", "shots_at": "${index.at}". Write evidence paths relative to the project folder, for example "${shots[0].fold ?? shots[0].file}".
+with ${stamp}. Write evidence paths relative to the project folder, for example "${shots[0].fold ?? shots[0].file}".
 
 Then reply with one line: the file is written, and your one-sentence reading of the site's idea.`;
   return { n, max: bar.max_passes, out, text };
@@ -134,6 +160,10 @@ export function judgeCritique(dir, pipeline, { belowBar } = {}) {
   const index = readIndex(dir);
   if (!index || data.shots_at !== index.at) {
     problems.push(`${last.file}: the screenshots changed after this critique. Run "studio critic <project>" for a new pass on the current ones`);
+  }
+  const motionAt = readMotionAt(dir);
+  if (motionAt && data.motion_at !== motionAt) {
+    problems.push(`${last.file}: the motion was measured again after this critique, or the critic never saw it. Run "studio critic <project>" for a new pass`);
   }
   for (const [k, v] of Object.entries(data.scores)) {
     for (const ev of v.evidence) {

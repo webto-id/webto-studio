@@ -687,6 +687,42 @@ test("verify needs a critique of the current screenshots that meets the bar", ()
   assert.deepEqual(checkpoint.artifacts.find((a) => a.name === "critique"), { name: "critique", path: "critique/pass-2.json" });
 });
 
+test("motion: faults block verify, and the critic must have seen the latest measurement", async () => {
+  const { judgeMotion, motionRequired } = await import("../tools/lib/motion.mjs");
+  const run = (extra = {}) => ({ label: "home", width: 390, reducedMotion: false, scroll: { droppedPct: 5, blockingMs: 100, longTasks: 2, layoutShift: 0, overflowAt: [] }, pins: [], frames: [], canvases: [], neverRevealed: 0, media: [], consoleErrors: [], ...extra });
+  assert.deepEqual(judgeMotion({ runs: [run()] }), { problems: [], warnings: [] });
+  const bad = judgeMotion({
+    runs: [
+      run({ neverRevealed: 2, canvases: [{ index: 0, width: 300, height: 200, blank: true }], pins: [{ y: 900, screens: 5 }], media: [{ kind: "model", bytes: 6 * 1048576 }] }),
+      run({ width: 1280, scroll: { droppedPct: 40, blockingMs: 900, longTasks: 30, layoutShift: 0.3, overflowAt: [{ y: 1200, px: 40 }] } }),
+    ],
+  });
+  assert.match(bad.problems.join("\n"), /2 entrance effect\(s\) never ran/);
+  assert.match(bad.problems.join("\n"), /canvas 0 \(300x200\) is on screen and drew nothing/);
+  assert.match(bad.problems.join("\n"), /home @1280: 40% of frames took over 50 ms/);
+  assert.match(bad.problems.join("\n"), /scrolls sideways by 40px at 1200px down/);
+  assert.match(bad.warnings.join("\n"), /pinned for 5 screens/);
+  assert.match(bad.warnings.join("\n"), /6\.0 MB of 3D model on a phone/);
+  assert.match(bad.warnings.join("\n"), /layout shifted by 0\.3/);
+
+  toVerify();
+  assert.equal(motionRequired(dir, loadPipeline("client-site")), false);
+  assert.equal(motionRequired(dir, loadPipeline("landing-3d")), true);
+  const at = shots();
+  critique(1, at);
+  writeCheckpoint(slug, "verify");
+  // Measured after the critique: the critic never saw it, so a new pass is due and allowed.
+  writeJson(join(dir, "motion", "index.json"), { at: "m1", runs: [run()] });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /the motion was measured again after this critique/);
+  const brief = criticBrief(dir, loadPipeline("client-site"));
+  assert.equal(brief.n, 2);
+  assert.ok(brief.text.includes(`"motion_at": "m1"`));
+  critique(2, at, undefined, { motion_at: "m1" });
+  writeCheckpoint(slug, "verify");
+  writeJson(join(dir, "motion", "index.json"), { at: "m1", runs: [run({ neverRevealed: 1 })] });
+  assert.throws(() => writeCheckpoint(slug, "verify"), /motion: home @390: 1 entrance effect\(s\) never ran/);
+});
+
 test("after the last pass under the bar only the user can accept the site; a self-score is flagged", () => {
   toVerify();
   for (let i = 1; i <= 3; i++) critique(i, shots(`2026-11-19T1${i}:00:00.000Z`), [6, 6, 6, 6]);

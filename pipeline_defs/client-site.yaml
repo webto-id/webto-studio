@@ -75,7 +75,7 @@ stages:
   - name: verify
     skill: pipelines/shared/verify-director
     requires: [lock]
-    produces: [shots, audit, critique, review]
+    produces: [shots, motion, audit, critique, review]
     review: true
     human_approval: false
     success_criteria:

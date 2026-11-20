@@ -33,6 +33,8 @@ lock:
   path: "{bundle}/webto.lock.json"
 shots:
   path: shots/index.json
+motion:
+  path: motion/index.json # required when the site moves (a motion library, a 3D page); judged again at the checkpoint
 audit:
   path: reports/audit.json # judged again at the checkpoint against the plans as they are
 review:

@@ -94,9 +94,11 @@ Four things go into every site, however short the request:
   idea and the two others at the plan gate.
 - **A blind critic.** After the draft is on the platform, a fresh agent that
   never saw the plan or the code scores the real pages from screenshots
-  alone, on design, usability, distinctiveness and content. Its fix list is
-  the builder's work until the site reaches the bar, or you accept it as it
-  is.
+  alone, on design, usability, distinctiveness and content. When the site
+  moves, it also sees frames of each moving section, scrolled on a phone
+  slowed to a mid-range Android's, and anything that stutters, stays
+  invisible or draws an empty canvas blocks publishing. Its fix list is the
+  builder's work until the site reaches the bar, or you accept it as it is.
 - **Written to be found.** With the pages, the agent plans the search each
   one answers ("klinik gigi anak dago bandung"), its title, description and
   headline, and the business facts that become structured data, from what

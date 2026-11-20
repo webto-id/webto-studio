@@ -5,6 +5,7 @@ import Ajv from "ajv";
 import YAML from "yaml";
 import { ROOT, SLUG_RE, StudioError, hashBundle, now, projectsDir, readJson, writeJson } from "./core.mjs";
 import { judgeSavedAudit, TITLE_MAX, DESC_RANGE } from "./audit.mjs";
+import { judgeSavedMotion } from "./motion.mjs";
 import { judgeCritique } from "./critic.mjs";
 import { loadPlaybooks, platformMarket, playbookFit, playbookProblems } from "./playbooks.mjs";
 
@@ -227,6 +228,12 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
     const r = judgeSavedAudit(dir, pipeline);
     problems.push(...r.problems);
     opts.warnings?.push(...(r.warnings ?? []).map((w) => `audit: ${w}`));
+    return existsSync(abs) ? { name, path: rel } : null;
+  }
+  if (name === "motion") {
+    const r = judgeSavedMotion(dir, pipeline);
+    problems.push(...r.problems);
+    opts.warnings?.push(...(r.warnings ?? []));
     return existsSync(abs) ? { name, path: rel } : null;
   }
   if (name === "critique") {

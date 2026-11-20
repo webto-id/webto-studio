@@ -34,12 +34,29 @@ understands at once, and that works on a phone in one hand.
 - `shots/index.json`: per screenshot, `overflowPx` (the page scrolls sideways
   by that much), `brokenImages`, `consoleErrors`, `title`, `loadError`.
 
-Screenshots are stills: you cannot see how motion feels. Leave it out of the
-score and list it in `not_judged`. Do not assume it is good. CSS transitions
-are run to their end before each capture, but a script-driven effect can
-still be caught halfway: two faded phrases or images on top of each other in
-a spot that changes over time (a rotating word, a slider) are a frame between
-states. Do not score or fix them; list them in `not_judged`.
+Screenshots are stills. CSS transitions are run to their end before each
+capture, but a script-driven effect can still be caught halfway: two faded
+phrases or images on top of each other in a spot that changes over time (a
+rotating word, a slider) are a frame between states. Do not score or fix
+them; list them in `not_judged`.
+
+**Motion**, when the brief lists `motion/` frames: each moving spot comes as a
+pair, the moment it comes into view and 0.7 s later at rest, on a phone and a
+laptop. Judge from the pairs and `motion/index.json`:
+
+- Does every moving thing move the same way, or is each section its own
+  effect? One way of moving, repeated, is part of design; a different effect
+  per section counts against design and distinctiveness.
+- Is anything still missing in the "at rest" frame (an empty block, a heading
+  that never arrived)? That is usability, scored as hard as a broken image.
+- Does a pinned or scrubbed section show content at each of its frames, or
+  blank screens between them?
+- The measurements: slow frames, blocked time and layout shift on the slowed
+  phone count against usability; a canvas that drew nothing or an effect that
+  never ran is a measured fault.
+
+Without motion frames, leave how it moves out of the score and list it in
+`not_judged`. Do not assume it is good.
 
 ## Before you score
 

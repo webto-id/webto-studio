@@ -29,6 +29,8 @@ const HELP = `webto-studio
                                           what search engines read: titles, descriptions, headings, alt, links, structured data
   log <project> "<decision>"              add a line to the decision log
   shoot <project> --page <label>=<url> [--page ...] [--widths 390,768,1280] [--dark] [--reduced-motion] [--tag <name>]
+  motion <project> --page <label>=<url> [--page ...] [--widths 390,1280] [--reduced-motion] [--frames 6]
+                                          scroll on a slowed phone and a laptop: stalls, jumps, empty canvases, effects that never run, frames for the critic
   crawl <project> <url> --authorized [--max 20] [--render]
   stock <project> --query "..." [--orientation landscape|portrait|square] [--provider <name>] [--count 6]
   stock-use <project> --pick <n> [--out <file.jpg>]
@@ -171,6 +173,22 @@ const commands = {
     if (!words.length) throw new StudioError('Usage: log <project> "<decision>"');
     logDecision(dir, { kind: "decision", text: words.join(" ") });
     out("Logged.");
+  },
+
+  async motion({ _: [slug], flags }) {
+    const { motion } = await import("./lib/motion.mjs");
+    const widths = typeof flags.widths === "string" ? flags.widths.split(",").map(Number).filter((n) => n >= 240 && n <= 3840) : undefined;
+    const r = await motion(slug, { pages: list(flags.page), widths, reducedMotion: flags["reduced-motion"] === true, frames: Number(flags.frames) || undefined });
+    for (const run of r.runs) {
+      const s = run.scroll;
+      out(`  ${run.label} @${run.width}${run.reducedMotion ? " reduced motion" : ""} (cpu x${run.cpuSlowdown}): ${s ? `${s.droppedPct}% slow frames, ${s.blockingMs} ms blocked, layout shift ${s.layoutShift}` : "not measured"}; ${run.frames.length} moving spot(s) captured`);
+    }
+    out(r.problems.length ? `Problems (fix before verify):
+${r.problems.map((p) => `  - ${p}`).join("\n")}` : "No problems.");
+    if (r.warnings.length) out(`Warnings (judge each):
+${r.warnings.map((w) => `  - ${w}`).join("\n")}`);
+    out(`Written: projects/${slug}/motion/. The critic sees the frames: run it after this.`);
+    if (r.problems.length) process.exitCode = 1;
   },
 
   async shoot({ _: [slug], flags }) {

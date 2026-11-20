@@ -8,6 +8,7 @@
     "pass": { "type": "integer", "minimum": 1 },
     "critic": { "enum": ["subagent", "self"], "description": "subagent: a fresh agent that saw only the evidence. self: the builder scored its own work" },
     "shots_at": { "type": "string", "minLength": 1, "description": "The `at` of shots/index.json the critic judged, copied from the brief" },
+    "motion_at": { "type": "string", "minLength": 1, "description": "The `at` of motion/index.json the critic judged, copied from the brief, when the site was measured moving" },
     "business_read": { "type": "string", "minLength": 10, "description": "What and where the critic thinks the business is, from the first screens alone" },
     "idea_read": { "type": "string", "minLength": 10, "description": "The site's idea in one sentence, as the critic read it, or a plain statement that no idea came through" },
     "scores": {

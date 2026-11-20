@@ -117,7 +117,8 @@ redone three times. After that, stop and ask the user how to proceed.
    `studio shoot` and open the images. Then a fresh critic agent that sees
    only the screenshots scores them (`skills/meta/critic.md`); its fixes are
    your work until the site meets the bar. `studio audit` reads what search
-   engines read from the same pages. Without a browser, say so, and
+   engines read from the same pages, and `studio motion` scrolls them on a
+   slowed phone when anything moves (`skills/meta/motion.md`). Without a browser, say so, and
    list the check as not done.
 9. **A Blender connection is the user's open Blender.** Ask before the first
    use, work in your own collection, never touch or save their work, and
@@ -171,6 +172,7 @@ All through `node tools/studio.mjs <command>`:
 | `audit <project> --page <label>=<url>` | Reads the real pages at phone width as a search engine does: title, description, `<h1>`, heading order, alt, link text, links to missing pages, structured data, words, weight; checks them against `seo_plan.json` and writes `reports/audit.json`. `--published` also checks noindex, `robots.txt`, the sitemap and every internal link on the live site |
 | `critic <project>` | Prints the brief for a fresh critic agent: the rubric and the screenshots, nothing of the plan. `--result` shows the latest pass against the bar |
 | `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, whole page and first screen, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
+| `motion <project> --page <label>=<url>` | Scrolls each page on a phone slowed to a mid-range Android's and on a laptop: slow frames, blocked time, layout shift, pins, canvases that draw nothing, entrance effects that never run, heavy models and video; keeps frames of each moving spot for the critic. Required at verify when the site moves |
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |
 | `stock <project> --query "..."` | Searches Unsplash, Pexels or Pixabay with the user's free key (from `.env`) and saves previews to `reports/stock/`. `--orientation`, `--provider`, `--count` |
 | `stock-use <project> --pick <n> [--out <file>]` | Takes one photo of the last search into the site the way its library requires, and records the credit in `stock_images.json` |
@@ -192,7 +194,7 @@ listings).
 |---|---|---|
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
-| Meta | `skills/meta/*` | Onboarding, concept, search, taste, self-review, the blind critic, gates, images, Blender |
+| Meta | `skills/meta/*` | Onboarding, concept, search, taste, motion, self-review, the blind critic, gates, images, Blender |
 | Playbooks | `skills/playbooks/*` | One per trade: who visits and what decides it for them, the pages, searches, what the trade may not claim, where its concepts come from. Never a look |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 

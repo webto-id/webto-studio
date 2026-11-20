@@ -9,6 +9,7 @@ the real navigation, the real images.
 - `skills/meta/reviewer.md`
 - `skills/meta/critic.md`
 - `skills/meta/seo.md`, section 7
+- `skills/meta/motion.md`, section 5, when anything on the site moves
 
 ## Do
 
@@ -35,6 +36,21 @@ the real navigation, the real images.
 3. **Read the measurements.** Sideways scroll, a failed image or a console
    error from the site's own code is a blocker. A console error from a
    third party is a note.
+   **Measure the motion** when anything moves: always for `landing-3d`, and
+   whenever a section loads GSAP, OGL, three.js or Lenis (`data-uses`); the
+   checkpoint refuses verify without it then. Worth running for any site with
+   entrance effects:
+
+   ```bash
+   node tools/studio.mjs motion <project> --page home=<url> --page <label>=<url> ...
+   ```
+
+   It scrolls each page on a phone slowed to a mid-range Android's and on a
+   laptop. Its problems block verify like the screenshots' (a canvas that
+   draws nothing, an effect that never runs, sideways scroll mid-scroll, a
+   laptop that stutters); its warnings are judged (`skills/meta/motion.md`,
+   section 5). It also keeps frames of each moving spot for the critic, so
+   run it again after every fix that touches motion, before the critic.
 4. **The search audit**, on the same links, every page:
 
    ```bash
@@ -60,7 +76,8 @@ the real navigation, the real images.
 8. **The blind critic.** Once your own findings are fixed and every run is
    captured, follow `skills/meta/critic.md`: `studio critic <project>`, a
    fresh agent with that brief only, then `studio critic <project> --result`.
-   Work through its fixes the way step 7 describes, capture every run again,
+   Work through its fixes the way step 7 describes, capture every run again
+   (and the motion, when it was measured),
    and run a new pass with a new critic, until the latest pass meets the
    pipeline's `quality_bar` or the passes run out and the user decides.
 9. **Write `review/verify.json`**, including the critic's readings where

@@ -9,8 +9,11 @@ its fix list is your work until the site reaches the bar.
 
 After `studio shoot` has captured every page of the real draft, in every run
 the stage asks for (light, dark when the site follows the visitor, reduced
-motion for `landing-3d`). The critic judges the screenshots as they are on
-disk; capturing again afterwards makes its critique stale.
+motion for `landing-3d`), and after `studio motion` when anything on the
+site moves (`skills/meta/motion.md`): the brief then gives the critic the
+frames of each moving spot. The critic judges the screenshots and the motion
+as they are on disk; capturing or measuring again afterwards makes its
+critique stale.
 
 ## Run a pass
 

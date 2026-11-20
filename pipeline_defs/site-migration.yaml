@@ -76,7 +76,7 @@ stages:
     skill: pipelines/shared/verify-director
     extra_skills: [pipelines/site-migration/parity-director]
     requires: [lock]
-    produces: [shots, audit, critique, review]
+    produces: [shots, motion, audit, critique, review]
     review: true
     human_approval: false
     success_criteria:
