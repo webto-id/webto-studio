@@ -138,9 +138,17 @@ fact is not in the brief.
 
 `address` and `openingHours` are what put the business on a map answer; ask
 for them in the brief if they are missing. `socialLinks` tells search which
-Instagram and marketplace pages are the same business. `logoUrl` is also the
-picture a shared link shows: a page's own share image cannot be set from the
-bundle.
+Instagram and marketplace pages are the same business.
+
+The picture a shared link shows (WhatsApp, Facebook) is the page's
+`ogImage` when it has one, else the first photo on the page, else `logoUrl`,
+else the site's thumbnail. Set `pages[].ogImage` in `site.json` for the pages
+people share most (the home page, a menu, a package): a real photo of the
+business, landscape, about 1200 px wide, as an https URL or `asset:<file>`.
+`pages[].noindex: true` keeps a page out of search (a thank-you page, a
+private price list). Leaving either key out keeps what is stored, so a value
+set in the dashboard survives an update; write `"ogImage": null` or
+`"noindex": false` to clear it. A template takes neither.
 
 A `rating` on a testimonial becomes a star rating in search. Only a rating
 the customer actually gave, with their permission; never one you choose.
