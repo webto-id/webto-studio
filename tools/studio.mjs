@@ -18,6 +18,7 @@ const HELP = `webto-studio
   setup                                   write .mcp.json from platform.config.json
   preflight [project]                     what this machine and token can do
   pipelines                               the pipelines and when to use each
+  playbooks                               the category playbooks and the businesses each covers
   new <project> --pipeline <name> [--title "..."]
   status <project>                        which stage is next and what it needs
   check <project> [--strict]              compile the bundle with the platform's validator
@@ -69,6 +70,13 @@ const commands = {
       out(`${p.name}  (${p.title})\n  ${String(p.summary).trim().replace(/\s+/g, " ")}\n  Use when: ${p.use_when.join(" | ")}\n  Stages: ${p.stages.map((s) => s.name + (s.human_approval ? "*" : "")).join(" > ")}\n`);
     }
     out("* = stops for the user's approval");
+  },
+
+  async playbooks() {
+    const { loadPlaybooks } = await import("./lib/playbooks.mjs");
+    for (const [key, p] of loadPlaybooks()) out(`${key}  (${p.listing_category}, ${p.country})\n  ${p.covers.join(", ")}\n  ${p.file}\n`);
+    out('Put the key in brief.json business.playbook (concept.json playbook for a template), or "none" when no playbook fits.');
+    out("Playbooks apply to businesses in the country shown; a business elsewhere gets \"none\" (skills/playbooks/README.md).");
   },
 
   async new({ _: [slug], flags }) {

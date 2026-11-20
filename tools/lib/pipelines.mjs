@@ -6,6 +6,7 @@ import YAML from "yaml";
 import { ROOT, SLUG_RE, StudioError, hashBundle, now, projectsDir, readJson, writeJson } from "./core.mjs";
 import { judgeSavedAudit, TITLE_MAX, DESC_RANGE } from "./audit.mjs";
 import { judgeCritique } from "./critic.mjs";
+import { loadPlaybooks, platformMarket, playbookFit, playbookProblems } from "./playbooks.mjs";
 
 const DEFS = join(ROOT, "pipeline_defs");
 const SCHEMAS = join(ROOT, "schemas");
@@ -223,6 +224,34 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
     const validate = validator(def.schema);
     if (!validate(data)) {
       for (const err of validate.errors.slice(0, 8)) problems.push(`${rel}${err.instancePath || ""}: ${err.message}`);
+    }
+  }
+  if (name === "brief" && typeof data?.business?.playbook === "string") {
+    problems.push(...playbookProblems(rel, data.business.playbook));
+    const fit = playbookFit(rel, data.business.playbook, { country: data.business.country, language: data.language });
+    problems.push(...fit.problems);
+    opts.warnings?.push(...fit.warnings);
+  }
+  if (name === "concept" && data) {
+    if (pipeline.name === "template-for-sale" && !data.playbook) {
+      problems.push(`${rel}: no "playbook". Name the playbook of the buyer's trade (node tools/studio.mjs playbooks), or "none"`);
+    } else if (data.playbook) {
+      problems.push(...playbookProblems(rel, data.playbook));
+      problems.push(...playbookFit(rel, data.playbook, { country: data.market ?? platformMarket() }).problems);
+      const pb = loadPlaybooks().get(data.playbook);
+      if (pb && data.category && data.category !== pb.listing_category) {
+        problems.push(`${rel}: category "${data.category}" does not match the playbook's "${pb.listing_category}"`);
+      }
+    }
+  }
+  if (name === "seo_plan" && data) {
+    let key;
+    try {
+      key = readJson(join(dir, "brief.json")).business?.playbook;
+    } catch {}
+    const pb = loadPlaybooks().get(key);
+    if (pb?.business_types && !pb.business_types.includes(data.business_type)) {
+      opts.warnings?.push(`${rel}: business_type "${data.business_type}" is not one the ${key} playbook expects (${pb.business_types.join(", ")}). Fine if the business really is that`);
     }
   }
   if (name === "design_direction" && data?.concept) conceptProblems(rel, data.concept, problems);

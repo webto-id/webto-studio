@@ -50,6 +50,9 @@ by putting the word on the page. Use a term from the customer's mouth, not
 the trade's: `sedot wc`, not `layanan sanitasi`. English only where the
 customers search in English.
 
+The playbook's "Searches" section gives the patterns for the trade; fill
+them with this business's own words and place.
+
 One page per search. Two pages aimed at the same words compete, and the
 checkpoint refuses it. Give each its own, or merge them.
 

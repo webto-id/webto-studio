@@ -59,6 +59,14 @@ see. Write it after the work, from what you actually opened.
   `brief.json` holds, or its `idea_read` is not the concept in
   `design_direction.json`. That is a `should`: the site is not saying it.
 
+**The trade** (the playbook in `brief.json`; with no playbook, the trade
+rules the user gave as facts)
+- A claim its "Rules of the trade" rules out: a certificate, licence, result,
+  superlative or testimonial the owner did not give or may not use. Always a
+  blocker, even when the owner asked for it.
+- A fact its "What decides it" names that the brief holds but the page hides
+  (prices below three screens of mood, hours missing from the first screen).
+
 **Search** (`skills/meta/seo.md`)
 - A page's title, description or hero headline that differs from
   `seo_plan.json`, or a second `<h1>` (a section heading set in `<h1>` for

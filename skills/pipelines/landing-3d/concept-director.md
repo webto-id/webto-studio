@@ -11,6 +11,8 @@ effect converts nobody.
 - `skills/meta/concept.md`
 - `skills/meta/taste-direction.md`
 - `skills/core/webto-website/references/interview.md`, the core questions
+- the playbook for this business (`skills/playbooks/`, `node tools/studio.mjs playbooks`), recorded as
+  `business.playbook` in `brief.json`
 
 ## Do
 

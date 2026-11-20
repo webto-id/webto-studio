@@ -120,7 +120,12 @@ then do it with conviction):
 - every section fading up as it scrolls in;
 - the category cliché: teal and white for a clinic, gold on black for a law
   office, red and yellow for food, a green leaf for anything natural, a batik
-  border to mean "Indonesian".
+  border to mean "Indonesian";
+- the clichés the business's playbook lists (`skills/playbooks/`).
+
+The playbook's "Where the concept comes from" names places to look for an
+anchor in that trade. They are places, not ideas: the anchor is still a fact
+of this business.
 
 ## Composition
 

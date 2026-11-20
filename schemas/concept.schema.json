@@ -10,6 +10,8 @@
     "promise": { "type": "string", "minLength": 10, "description": "What the buyer or visitor gets, in one sentence" },
     "differentiator": { "type": "string", "minLength": 10, "description": "What sets it apart from what already exists" },
     "category": { "type": "string" },
+    "market": { "type": "string", "pattern": "^[A-Z]{2}$", "description": "template-for-sale: country of the businesses that will buy and use the template (ISO 3166-1 alpha-2). Defaults to the platform's market" },
+    "playbook": { "type": "string", "minLength": 1, "description": "template-for-sale: the category playbook of the buyer's trade (skills/playbooks/), or none" },
     "pages": { "type": "array", "items": { "type": "string" } },
     "looked_at": { "type": "array", "items": { "type": "string" }, "description": "Existing templates or sites looked at before deciding" },
     "three_d": {

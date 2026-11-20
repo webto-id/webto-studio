@@ -10,6 +10,7 @@ already exist. A template with no buyer in mind sells to nobody.
 - `skills/core/html-to-webto-template/SKILL.md`, "Quality bar" and "Hard limits"
 - `skills/core/html-to-webto-template/references/manifest.md`, the listing
   categories
+- the playbook of the buyer's trade (`skills/playbooks/`, `node tools/studio.mjs playbooks`)
 
 ## Do
 
@@ -26,7 +27,12 @@ already exist. A template with no buyer in mind sells to nobody.
    - `promise`: what they get, in one sentence a buyer would repeat;
    - `differentiator`: what is different here, concretely (a layout idea, a
      content structure the category needs, a look);
-   - `category`: one of the platform's categories, exactly as listed;
+   - `market`: the country of the businesses that will buy it, when it is
+     not the platform's own (`platform.config.json`, `platform.market`);
+   - `playbook`: the playbook of the buyer's trade, or `"none"`; a
+     playbook only serves a template for its own country;
+   - `category`: one of the platform's categories, exactly as listed: the
+     playbook's `listing_category` when there is one;
    - `pages`: at most eight, one of them the home page;
    - `working_name`: short, fit for a catalog card.
 4. **Set the direction** (`design_direction.json`). Its `concept` block

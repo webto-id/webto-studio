@@ -6,6 +6,7 @@ the one design language they share. Nothing is written to the platform here.
 ## Read first
 
 - `skills/meta/concept.md`
+- the playbook named in `brief.json` (`skills/playbooks/<playbook>.md`), all of it
 - `skills/meta/seo.md`, sections 1 to 6
 - `skills/meta/taste-direction.md`
 - `skills/core/webto-website/SKILL.md`, steps 3 to 5 of "Workflow: a new site"
@@ -23,7 +24,8 @@ the one design language they share. Nothing is written to the platform here.
    (`parent`), one level deep. Every section gets a `purpose`: what it does
    for the visitor's goal, and a `layout` from the concept's composition.
    Neighbours on a page get different layouts. A section with no purpose is
-   cut.
+   cut. Start from the playbook's "The pages" and "The first screen"; cut
+   what the brief cannot fill.
 3. **Search.** Following `skills/meta/seo.md`, write `seo_plan.json`: who
    searches and from where, then for every page its query, title,
    description and `<h1>`, and the `businessProfile` fields with the fact each

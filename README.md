@@ -76,7 +76,15 @@ tools/                preflight, check, checkpoint, screenshots, old-site reader
 projects/             your work, one folder per site (not tracked by git)
 ```
 
-Three things go into every site, however short the request:
+Four things go into every site, however short the request:
+
+- **The trade's playbook.** Fourteen playbooks, from warung to notary to
+  umrah agency, say what that trade's visitors come to do, what decides it
+  for them, which pages and searches matter, and what the trade may not
+  claim (health advertising rules, the notaries' and advocates' codes,
+  halal and BPOM claims). They never say how the site looks. They are
+  written for businesses in Indonesia; for a business elsewhere the agent
+  uses none and asks you for that country's rules.
 
 - **A concept before any design.** The agent asks you only for facts, then
   writes three ideas taken from the business's own world (its name, its

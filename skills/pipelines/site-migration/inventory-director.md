@@ -8,6 +8,7 @@ of which facts are still true.
 
 - `schemas/content_inventory.schema.json`, `schemas/brief.schema.json`
 - `skills/core/webto-website/references/interview.md`
+- `skills/playbooks/README.md`, then the playbook for this business (`node tools/studio.mjs playbooks`)
 
 ## Do
 
@@ -33,7 +34,11 @@ of which facts are still true.
    not, in plain words: a booking plugin, a members' area, a shop's order
    history, a blog's comments, embedded widgets. Check the platform's limits
    in `AGENT_GUIDE.md` ("What you cannot do").
-5. **Write `brief.json`** from the inventory: facts get `source: "old_site"`.
+5. **Write `brief.json`** from the inventory: facts get `source: "old_site"`,
+   `business.country` says where the business operates, and
+   `business.playbook` names the playbook (or `"none"`; always `"none"`
+   outside Indonesia, see `skills/playbooks/README.md`). What the playbook
+   says visitors need and the old site lacks is a gap for step 6.
    Then ask the user what is out of date. Old sites carry old prices, old
    hours and staff who left. A corrected fact gets `source: "user"`.
 6. **Interview for the gaps.** Run the table for this kind of business in

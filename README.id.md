@@ -74,7 +74,17 @@ tools/                preflight, check, checkpoint, tangkapan layar, pembaca sit
 projects/             pekerjaan Anda, satu folder per situs (tidak dilacak git)
 ```
 
-Tiga hal masuk ke setiap situs, sependek apa pun permintaannya:
+Empat hal masuk ke setiap situs, sependek apa pun permintaannya:
+
+- **Playbook bidang usaha.** Empat belas playbook, dari warung sampai notaris
+  sampai biro umrah, menjelaskan apa yang dicari pengunjung bidang itu, apa
+  yang membuat mereka memutuskan, halaman dan pencarian yang penting, serta
+  klaim yang tidak boleh dibuat (aturan iklan kesehatan, kode etik notaris
+  dan advokat, klaim halal dan BPOM). Playbook tidak pernah menentukan
+  tampilan situs. Playbook ditulis untuk usaha di Indonesia; untuk usaha di
+  negara lain agen tidak memakainya dan menanyakan aturan negara itu kepada
+  Anda. Situs berbahasa Inggris untuk usaha di Indonesia (misalnya villa di
+  Bali) tetap tunduk pada aturan Indonesia.
 
 - **Konsep sebelum desain.** Agen hanya menanyakan fakta kepada Anda, lalu
   menulis tiga ide yang diambil dari dunia usaha itu sendiri (namanya,

@@ -9,7 +9,8 @@
     "docsUrl": "https://docs.webto.id",
     "catalogUrl": "https://webto.id/templates/",
     "siteDomain": "wpage.id",
-    "currency": "IDR"
+    "currency": "IDR",
+    "market": "ID"
   },
   "agent": {
     "mcpServerName": "webto",

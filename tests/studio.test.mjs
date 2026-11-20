@@ -19,7 +19,7 @@ beforeEach(() => {
 });
 
 const brief = (extra = {}) => ({
-  business: { name: "Warung Senja", kind: "warung" },
+  business: { name: "Warung Senja", kind: "warung", country: "ID", playbook: "kuliner" },
   language: "id",
   goal: "Pesan lewat WhatsApp",
   facts: [{ field: "address", value: "Jl. Contoh 1", source: "user" }],
@@ -801,4 +801,74 @@ test("verify needs an audit of the current draft with no problems", () => {
   auditReport([auditPage()], { lockRevision: 4 });
   const { checkpoint } = writeCheckpoint(slug, "verify");
   assert.ok(checkpoint.artifacts.some((a) => a.name === "audit" && a.path === "reports/audit.json"));
+});
+
+// ── category playbooks ────────────────────────────────────────────────────
+const { LISTING_CATEGORIES, PLAYBOOK_SECTIONS, loadPlaybooks } = await import("../tools/lib/playbooks.mjs");
+
+test("every playbook names a real category, interview table and business types, with every section in order", async () => {
+  const { readFileSync: read } = await import("node:fs");
+  const { ROOT } = await import("../tools/lib/core.mjs");
+  const interview = read(join(ROOT, "skills", "core", "webto-website", "references", "interview.md"), "utf8");
+  const types = JSON.parse(read(join(ROOT, "schemas", "seo_plan.schema.json"), "utf8")).properties.business_type.enum;
+  const all = loadPlaybooks();
+  assert.ok(all.size >= 8, `${all.size} playbooks`);
+  for (const [key, p] of all) {
+    assert.match(key, /^[a-z0-9]+(-[a-z0-9]+)*$/, key);
+    assert.ok(LISTING_CATEGORIES.includes(p.listing_category), `${key}: listing_category ${p.listing_category}`);
+    assert.ok(Array.isArray(p.covers) && p.covers.length, `${key}: covers`);
+    assert.ok(interview.includes(`### ${p.interview}`), `${key}: interview heading "${p.interview}"`);
+    for (const t of p.business_types) assert.ok(types.includes(t), `${key}: business type ${t}`);
+    assert.match(String(p.country), /^[A-Z]{2}$/, `${key}: country`);
+    assert.match(String(p.language), /^[a-z]{2}$/, `${key}: language`);
+    const headings = [...p.body.matchAll(/^## (.+)$/gm)].map((m) => m[1].trim());
+    assert.deepEqual(headings, PLAYBOOK_SECTIONS, `${key}: sections`);
+    assert.doesNotMatch(p.body, /PENDING|TODO/, `${key}: unfinished`);
+  }
+});
+
+test("a brief names a playbook that exists, or none", () => {
+  writeJson(join(dir, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(slug, "preflight");
+  writeJson(join(dir, "brief.json"), brief({ business: { name: "Warung Senja", kind: "warung", country: "ID" } }));
+  assert.throws(() => writeCheckpoint(slug, "brief"), /required property 'playbook'/);
+  writeJson(join(dir, "brief.json"), brief({ business: { name: "Warung Senja", kind: "warung", country: "ID", playbook: "restoran" } }));
+  assert.throws(() => writeCheckpoint(slug, "brief"), /playbook "restoran" does not exist\. Choose one of .*kuliner/);
+  writeJson(join(dir, "brief.json"), brief({ business: { name: "Warung Senja", kind: "warung", country: "ID", playbook: "none" } }));
+  writeCheckpoint(slug, "brief");
+});
+
+test("a playbook applies only to a business in the country it was written for", () => {
+  const s = `pc${n}`;
+  const d = createProject(s, "client-site").dir;
+  writeJson(join(d, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(s, "preflight");
+  writeJson(join(d, "brief.json"), brief({ business: { name: "Sunset Diner", kind: "diner", playbook: "kuliner" } }));
+  assert.throws(() => writeCheckpoint(s, "brief"), /required property 'country'/);
+  writeJson(join(d, "brief.json"), brief({ language: "en", business: { name: "Sunset Diner", kind: "diner", country: "US", playbook: "kuliner" } }));
+  assert.throws(() => writeCheckpoint(s, "brief"), /playbook "kuliner" is written for businesses in ID.*this business is in US/);
+  writeJson(join(d, "brief.json"), brief({ language: "en", business: { name: "Sunset Diner", kind: "diner", country: "US", playbook: "none" } }));
+  writeCheckpoint(s, "brief");
+  // An English site for a business in Indonesia keeps the rules; only a warning about the language.
+  writeJson(join(d, "brief.json"), brief({ language: "en", business: { name: "Villa Senja", kind: "villa", country: "ID", playbook: "travel" } }));
+  const { warnings } = writeCheckpoint(s, "brief");
+  assert.ok(warnings.some((w) => /site is in "en".*rules still apply/.test(w)), warnings.join(" | "));
+});
+
+test("a template's concept names its playbook, and the category follows it", () => {
+  const s = `tp${n}`;
+  const d = createProject(s, "template-for-sale").dir;
+  writeJson(join(d, "reports", "preflight.json"), { ok: true });
+  writeCheckpoint(s, "preflight");
+  const c = { for_whom: "A neighbourhood warung that takes orders on WhatsApp", promise: "A menu with prices people can order from", differentiator: "The menu is set like the shop's own price board", category: "Kuliner", pages: ["Beranda"] };
+  writeJson(join(d, "concept.json"), c);
+  writeJson(join(d, "design_direction.json"), direction({ concept: concept({ candidates: [{ ...candidate("Senja", "name"), anchor_source: "category" }, { ...candidate("Papan harga", "place"), anchor_source: "category" }, { ...candidate("Satu nota", "system"), anchor_source: "category" }] }) }));
+  writeJson(join(d, "site_plan.json"), plan());
+  assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /no "playbook"/);
+  writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner", category: "Bisnis & Jasa" });
+  assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /category "Bisnis & Jasa" does not match the playbook's "Kuliner"/);
+  writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner", market: "AU" });
+  assert.throws(() => writeCheckpoint(s, "concept", { approved: "ya" }), /written for businesses in ID.*this business is in AU/);
+  writeJson(join(d, "concept.json"), { ...c, playbook: "kuliner" });
+  writeCheckpoint(s, "concept", { approved: "ya" });
 });

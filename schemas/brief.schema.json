@@ -7,10 +7,12 @@
   "properties": {
     "business": {
       "type": "object",
-      "required": ["name", "kind"],
+      "required": ["name", "kind", "country", "playbook"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "kind": { "type": "string", "minLength": 1, "description": "Kind of business, in plain words: warung, klinik gigi, notaris, kontraktor" },
+        "country": { "type": "string", "pattern": "^[A-Z]{2}$", "description": "ISO 3166-1 alpha-2 code of the country where the business operates and is licensed, e.g. ID. Decides which trade rules apply; it is not the site's language" },
+        "playbook": { "type": "string", "minLength": 1, "description": "The category playbook in skills/playbooks/ (file name without .md), or none when no playbook fits or none is written for the business's country" },
         "description": { "type": "string" }
       }
     },

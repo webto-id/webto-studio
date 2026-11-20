@@ -102,7 +102,10 @@ redone three times. After that, stop and ask the user how to proceed.
    product or work, and generating on the user's key needs their yes first.
 7. **Every section is designed, from one concept.** A short request is not a
    reason for a generic site. Ask the user for facts; decide the design
-   yourself. Before the direction, choose a concept from three, anchored in
+   yourself. The trade's playbook (`skills/playbooks/`) says what its
+   visitors need and what it may not claim; it never says how it looks.
+   Playbooks are written for businesses in Indonesia: one outside it gets
+   none, and its trade rules come from the user. Before the direction, choose a concept from three, anchored in
    this business (`skills/meta/concept.md`), and show it at the plan gate.
    Author each section as a WVF variant under that one direction, following
    `skills/core/html-to-webto-variant`. Do not assemble a site from platform
@@ -159,6 +162,7 @@ All through `node tools/studio.mjs <command>`:
 |---|---|
 | `preflight [project]` | Checks Node, the core skills, the MCP configuration, the token and its scopes, the account's limits, and whether a browser is available |
 | `pipelines` | Lists the pipelines and their stages |
+| `playbooks` | Lists the category playbooks and the businesses each covers |
 | `new <project> --pipeline <name>` | Creates the project folder |
 | `status <project>` | Shows done, stale and next stages, and what the next one needs |
 | `check <project> [--strict]` | Compiles the bundle with the platform's validator and writes `reports/check.json`. Templates are always strict |
@@ -189,6 +193,7 @@ listings).
 | Pipelines | `pipeline_defs/*.yaml` | Stages, gates, artifacts, success criteria |
 | Directors | `skills/pipelines/**` | How to run one stage |
 | Meta | `skills/meta/*` | Onboarding, concept, search, taste, self-review, the blind critic, gates, images, Blender |
+| Playbooks | `skills/playbooks/*` | One per trade: who visits and what decides it for them, the pages, searches, what the trade may not claim, where its concepts come from. Never a look |
 | Core skills | `skills/core/*` | The craft: the variant format, site and template bundles, 3D recipes. Maintained upstream; do not edit them here |
 
 When a director and a core skill disagree about the platform's format or
