@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:f
 import { join } from "node:path";
 import { StudioError, now, readJson, walk, writeJson } from "./core.mjs";
 import { loadPipeline, loadProject } from "./pipelines.mjs";
-import { parsePages } from "./shoot.mjs";
+import { openPage, parsePages, watchConsole } from "./shoot.mjs";
 
 export const MOTION_WIDTHS = [390, 1280];
 // A mid-range Android runs page script about four times slower than a laptop.
@@ -59,8 +59,7 @@ async function open(browser, url, width, reducedMotion, sink) {
   const context = await browser.newContext({ viewport: VIEW(width), deviceScaleFactor: 1, isMobile: width < 600, hasTouch: width < 600, reducedMotion: reducedMotion ? "reduce" : "no-preference" });
   await context.addInitScript(initObservers);
   const page = await context.newPage();
-  page.on("console", (m) => m.type() === "error" && sink.errors.push(m.text().slice(0, 300)));
-  page.on("pageerror", (e) => sink.errors.push(String(e.message).slice(0, 300)));
+  watchConsole(page, url, sink.errors, sink.other);
   page.on("response", async (r) => {
     const u = r.url().split("?")[0].toLowerCase();
     const type = r.headers()["content-type"] ?? "";
@@ -71,12 +70,7 @@ async function open(browser, url, width, reducedMotion, sink) {
   });
   const cdp = await context.newCDPSession(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_SLOWDOWN(width) });
-  let loadError = null;
-  try {
-    await page.goto(url, { waitUntil: "networkidle", timeout: 45_000 });
-  } catch (e) {
-    loadError = e.message.split("\n")[0];
-  }
+  const loadError = await openPage(page, url);
   return { context, page, loadError };
 }
 
@@ -251,13 +245,13 @@ export async function motion(slug, { pages = [], widths, reducedMotion = false, 
       for (const width of sizes) {
         const base = `${target.label}-${width}${reducedMotion ? "-still" : ""}`;
         for (const f of readdirSync(outDir).filter((f) => f.startsWith(`${base}-`) && /^-\d+-(enter|settled)\.jpg$/.test(f.slice(base.length)))) rmSync(join(outDir, f));
-        const sink = { errors: [], media: [] };
+        const sink = { errors: [], other: [], media: [] };
         // First visit: measure the scroll, untouched by screenshots.
         const a = await open(browser, target.url, width, reducedMotion, sink);
         const scroll = a.loadError ? null : await measureScroll(a.page, width);
         await a.context.close();
         // Second visit: frames at each moving section, as it enters and once settled.
-        const b = await open(browser, target.url, width, reducedMotion, { errors: sink.errors, media: [] });
+        const b = await open(browser, target.url, width, reducedMotion, { errors: sink.errors, other: sink.other, media: [] });
         const { positions, pins } = b.loadError ? { positions: [], pins: [] } : await movingPositions(b.page, Math.max(1, Math.min(12, frames)));
         const shots = [];
         const canvases = new Map();
@@ -303,6 +297,7 @@ export async function motion(slug, { pages = [], widths, reducedMotion = false, 
           neverRevealed,
           media: sink.media,
           consoleErrors: [...new Set(sink.errors)].slice(0, 10),
+          ...(sink.other.length ? { otherConsole: [...new Set(sink.other)].slice(0, 10) } : {}),
           ...(a.loadError || b.loadError ? { loadError: a.loadError || b.loadError } : {}),
         });
       }

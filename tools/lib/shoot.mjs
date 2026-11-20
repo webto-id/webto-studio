@@ -10,6 +10,47 @@ const DEFAULT_WIDTHS = [390, 768, 1280];
 const VIEW_HEIGHT = 900;
 const MAX_PARTS = 12;
 
+/**
+ * Whose console message this is. A report-only security notice blocks nothing, and a
+ * script from another host (the platform's anti-bot check, analytics) is not the site's
+ * own code: both are kept apart so they are not counted as the site's faults.
+ */
+export function consoleSource(text, sourceUrl, pageUrl) {
+  if (/\[Report Only\]/i.test(text)) return "note";
+  try {
+    const s = new URL(sourceUrl);
+    if (/^https?:$/.test(s.protocol) && s.host !== new URL(pageUrl).host) return "third-party";
+  } catch {}
+  return "site";
+}
+
+export function watchConsole(page, pageUrl, siteErrors, other) {
+  page.on("console", (m) => {
+    if (m.type() !== "error") return;
+    const text = m.text().slice(0, 300);
+    const who = consoleSource(text, m.location()?.url ?? "", pageUrl);
+    if (who === "site") siteErrors.push(text);
+    else other.push(`${who}: ${text}`);
+  });
+  page.on("pageerror", (e) => siteErrors.push(String(e.message).slice(0, 300)));
+}
+
+/**
+ * Open a page and give it a moment to go quiet. A page counts as loaded at its load
+ * event; waiting for the network to fall silent as well would fail every page whose
+ * anti-bot check or chat keeps a connection open, though it is ready for a visitor.
+ * Returns the load error, or null.
+ */
+export async function openPage(page, url) {
+  try {
+    await page.goto(url, { waitUntil: "load", timeout: 45_000 });
+  } catch (e) {
+    return e.message.split("\n")[0];
+  }
+  await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+  return null;
+}
+
 export function parsePages(pages, urls) {
   const out = [];
   for (const p of pages) {
@@ -56,14 +97,9 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
         });
         const page = await context.newPage();
         const consoleErrors = [];
-        page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text().slice(0, 300)));
-        page.on("pageerror", (e) => consoleErrors.push(String(e.message).slice(0, 300)));
-        let loadError = null;
-        try {
-          await page.goto(target.url, { waitUntil: "networkidle", timeout: 45_000 });
-        } catch (e) {
-          loadError = e.message.split("\n")[0];
-        }
+        const otherConsole = [];
+        watchConsole(page, target.url, consoleErrors, otherConsole);
+        const loadError = await openPage(page, target.url);
         // Walk down the page at a reader's pace so lazy images load and entrance
         // effects run. A quick walk leaves reveals below hidden (their observer
         // fires after the page has moved on), and the capture then shows empty
@@ -152,6 +188,7 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
           ...(parts.length ? { parts } : {}),
           ...measured,
           consoleErrors: [...new Set(consoleErrors)].slice(0, 10),
+          ...(otherConsole.length ? { otherConsole: [...new Set(otherConsole)].slice(0, 10) } : {}),
           ...(loadError ? { loadError } : {}),
         });
         await context.close();

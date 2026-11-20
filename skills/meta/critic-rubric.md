@@ -32,7 +32,11 @@ understands at once, and that works on a phone in one hand.
   buyer can switch to, shown as sections without the site's navbar and
   footer; judge the sections, not the missing chrome.
 - `shots/index.json`: per screenshot, `overflowPx` (the page scrolls sideways
-  by that much), `brokenImages`, `consoleErrors`, `title`, `loadError`.
+  by that much), `brokenImages`, `consoleErrors` (the site's own),
+  `title`, `loadError`. `otherConsole` holds messages from other hosts'
+  scripts (the platform's anti-bot check, analytics) and report-only
+  security notices, which block nothing: they are not the site's faults and
+  do not count.
 
 Screenshots are stills. CSS transitions are run to their end before each
 capture, but a script-driven effect can still be caught halfway: two faded

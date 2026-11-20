@@ -947,3 +947,12 @@ test("a site that follows the visitor needs a dark palette, and every real page 
   writeJson(join(d, "shots", "index.json"), { at: "t", shots: [shot("home", "light"), shot("home", "light", { local: true, tag: "local-dark", file: "shots/home-local-dark.png" })] });
   assert.deepEqual(darkShotProblems(d, { name: "template-for-sale" }), []);
 });
+
+test("console messages from other hosts and report-only notices are not the site's errors", async () => {
+  const { consoleSource } = await import("../tools/lib/shoot.mjs");
+  const page = "https://warung.wpage.id/kontak?_pt=x";
+  assert.equal(consoleSource("Uncaught TypeError: x is undefined", "https://warung.wpage.id/kontak", page), "site");
+  assert.equal(consoleSource("%c...", "https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/orchestrate", page), "third-party");
+  assert.equal(consoleSource("[Report Only] Refused to connect to 'data:,' because it violates the following Content Security Policy directive", "https://warung.wpage.id/kontak", page), "note");
+  assert.equal(consoleSource("Failed to load resource", "", page), "site");
+});
