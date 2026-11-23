@@ -7,6 +7,7 @@ skills and are not repeated here:
 |---|---|
 | Entrance reveals, staggers, counters, soft parallax, no script | `skills/core/html-to-webto-variant/references/wvf.md` §5b (`data-wv-effect`) |
 | GSAP timelines, ScrollTrigger, pin and scrub | `wvf.md` §4a (`data-uses="gsap scroll-trigger"`) |
+| The Webflow/Framer scroll effects by name: stacking cards, text that fills on scroll, horizontal gallery, image zoom, clip reveal, sticky steps, velocity marquee, colour change, magnetic button | `skills/core/html-to-webto-variant/references/gsap-recipes.md`, tested variants in `examples/gsap/` |
 | WebGL with OGL: poster, one canvas per section, at most four | `skills/core/html-to-webto-variant/references/webgl.md` |
 | three.js and `.glb` models, scroll video, depth parallax | `skills/core/webto-3d-effects/references/recipes.md` |
 
