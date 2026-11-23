@@ -193,6 +193,40 @@ function seoPlanProblems(dir, rel, seo, problems, warnings) {
   }
 }
 
+/**
+ * What a site tells search and AI about the business, beyond its pages: the
+ * profile the search plan promised, the AI context (aiDescription) the platform
+ * uses for blog posts and the AI customer service, and the llms.txt AI crawlers
+ * read. A template takes none of them: its buyer is another business.
+ */
+export function siteFactsProblems(dir, rel, manifest) {
+  const problems = [];
+  let seo = null;
+  try {
+    seo = readJson(join(dir, "seo_plan.json"));
+  } catch {}
+  const profile = manifest.businessProfile ?? {};
+  const has = (field) => {
+    const v = profile[field];
+    return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length) && !(typeof v === "object" && !Array.isArray(v) && !Object.keys(v).length);
+  };
+  for (const f of seo?.profile ?? []) {
+    if (!has(f.field)) problems.push(`${rel}: businessProfile.${f.field} is missing, but seo_plan.json fills it from "${f.from}". Put the fact in the bundle`);
+  }
+  const about = typeof manifest.aiDescription === "string" ? manifest.aiDescription.trim() : "";
+  if (about.length < 120) {
+    problems.push(`${rel}: aiDescription is ${about.length ? "too short" : "missing"}. Write what the business is, where, for whom, what it offers and at what prices, and how it talks, from brief.json (skills/meta/seo.md, section 5b)`);
+  }
+  const llms = typeof manifest.llmsTxt === "string" ? manifest.llmsTxt.trim() : "";
+  if (!llms) problems.push(`${rel}: llmsTxt is missing. Write the site's llms.txt (skills/meta/seo.md, section 5b)`);
+  else {
+    if (!/^# \S/.test(llms)) problems.push(`${rel}: llmsTxt must start with "# " and the business name`);
+    if (!/^> \S/m.test(llms)) problems.push(`${rel}: llmsTxt needs the one-line summary ("> ...") under the name`);
+    if (llms.length < 200) problems.push(`${rel}: llmsTxt is ${llms.length} characters; give it the summary, the pages and the facts that decide (skills/meta/seo.md, section 5b)`);
+  }
+  return problems;
+}
+
 /** The colour mode the direction chose, or null before there is one. */
 function colorModeOf(dir) {
   try {
@@ -299,6 +333,7 @@ function checkArtifact(dir, pipeline, name, stage, problems, opts = {}) {
       problems.push(`${rel}: ${data.color_mode.mode === "system" ? 'color_mode "system" shows the dark palette to every visitor whose device is set to dark' : "a buyer can switch a template to dark"}, so palette.dark needs ${missing.join(", ")}`);
     }
   }
+  if (name === "bundle" && data && pipeline.name !== "template-for-sale") problems.push(...siteFactsProblems(dir, rel, data));
   if (name === "bundle" && data) {
     const mode = colorModeOf(dir);
     const built = data.theme?.colorMode ?? "light";

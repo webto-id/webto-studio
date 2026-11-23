@@ -190,6 +190,7 @@ export async function audit(slug, { pages = [], published = false } = {}) {
   if (published) {
     const origin = new URL(targets[0].url).origin;
     const robots = await fetchText(`${origin}/robots.txt`);
+    const llms = await fetchText(`${origin}/llms.txt`);
     const sitemap = await fetchText(`${origin}/sitemap.xml`);
     const paths = [...sitemap.text.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => {
       try {
@@ -211,6 +212,7 @@ export async function audit(slug, { pages = [], published = false } = {}) {
       origin,
       robots: { status: robots.status, blocksAll: /^\s*disallow:\s*\/\s*$/im.test(robots.text) && /user-agent:\s*\*/i.test(robots.text), sitemapListed: /sitemap:/i.test(robots.text) },
       sitemap: { status: sitemap.status, paths },
+      llms: { status: llms.status, firstLine: (llms.text ?? "").split("\n")[0].trim().slice(0, 200) },
       linkStatus,
     };
   }
@@ -231,14 +233,17 @@ export function readPlans(dir) {
       return null;
     }
   };
-  return { seoPlan: read("seo_plan.json"), sitePlan: read("site_plan.json") };
+  // The first line of the bundle's own llms.txt, which the published site must serve.
+  const llms = read(join("site", "site.json"))?.llmsTxt;
+  const llmsFirstLine = typeof llms === "string" && llms.trim() ? llms.trim().split("\n")[0].trim().slice(0, 200) : null;
+  return { seoPlan: read("seo_plan.json"), sitePlan: read("site_plan.json"), llmsFirstLine };
 }
 
 /**
  * Judge collected pages against the plans. Problems block the verify stage;
  * warnings are reported and left to judgement.
  */
-export function judgeAudit(report, { seoPlan, sitePlan } = {}) {
+export function judgeAudit(report, { seoPlan, sitePlan, llmsFirstLine } = {}) {
   const problems = [];
   const warnings = [];
   const pages = report.pages ?? [];
@@ -335,6 +340,10 @@ export function judgeAudit(report, { seoPlan, sitePlan } = {}) {
   if (report.published && report.site) {
     if (report.site.robots.blocksAll) problems.push(`robots.txt on ${report.site.origin} blocks every crawler`);
     if (report.site.sitemap.status !== 200) problems.push(`sitemap.xml on ${report.site.origin} answered ${report.site.sitemap.status}`);
+    if (report.site.llms && report.site.llms.status !== 200) problems.push(`llms.txt on ${report.site.origin} answered ${report.site.llms.status}`);
+    if (report.site.llms?.status === 200 && llmsFirstLine && report.site.llms.firstLine !== llmsFirstLine) {
+      problems.push(`llms.txt on ${report.site.origin} starts "${report.site.llms.firstLine}", not the bundle's "${llmsFirstLine}": the platform is serving its own fallback. Send llmsTxt with update_site`);
+    }
   } else if (pages.some((p) => /noindex/i.test(p.robots ?? ""))) {
     warnings.push("The draft pages say noindex, as a draft should. After publishing, run the audit again with --published on the public address");
   }

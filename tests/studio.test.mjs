@@ -97,9 +97,18 @@ function throughPlan() {
   writeJson(join(dir, "seo_plan.json"), seoPlan());
   writeCheckpoint(slug, "plan", { approved: "ya, lanjut" });
 }
-function writeBundle(body = "<section>a</section>") {
+// A site.json carrying what the build checkpoint asks of a site: the planned profile,
+// the AI context and the llms.txt.
+const siteManifest = (extra = {}) => ({
+  siteName: "Warung Senja",
+  businessProfile: { businessType: "Restaurant", address: { street: "Jl. Contoh 1", city: "Semarang", country: "ID" } },
+  aiDescription: "Warung Senja adalah warung makan malam rumahan di Jl. Contoh 1, Semarang. Menu harian nasi, lauk dan wedang, harga Rp15.000 sampai Rp30.000. Pesan lewat WhatsApp, ambil tanpa antre.",
+  llmsTxt: "# Warung Senja\n\n> Warung makan malam rumahan di Jl. Contoh 1, Semarang; buka sore sampai tutup, pesan lewat WhatsApp.\n\n## Halaman\n\n- [Beranda](/): menu, harga, jam buka dan cara pesan\n\n## Fakta\n\n- Jam buka: setiap hari 17.00-23.00\n",
+  ...extra,
+});
+function writeBundle(body = "<section>a</section>", manifest = siteManifest()) {
   mkdirSync(join(dir, "site", "sections"), { recursive: true });
-  writeFileSync(join(dir, "site", "site.json"), "{}");
+  writeFileSync(join(dir, "site", "site.json"), JSON.stringify(manifest));
   writeFileSync(join(dir, "site", "sections", "hero-warung.astro"), body);
   writeJson(join(dir, "reports", "check.json"), { ok: true, bundleHash: hashBundle(join(dir, "site")) });
 }
@@ -177,9 +186,13 @@ test("build needs a passing check of the bundle as it is on disk, and a passing 
   assert.throws(() => writeCheckpoint(slug, "build"), /bundle changed after it was checked/);
   writeBundle("<section>changed</section>");
   // The bundle's colour mode follows the direction's.
-  writeFileSync(join(dir, "site", "site.json"), JSON.stringify({ theme: { colorMode: "system" } }));
-  writeJson(join(dir, "reports", "check.json"), { ok: true, bundleHash: hashBundle(join(dir, "site")) });
+  writeBundle("<section>changed</section>", siteManifest({ theme: { colorMode: "system" } }));
   assert.throws(() => writeCheckpoint(slug, "build"), /theme\.colorMode is "system", design_direction\.json says "light"/);
+  // It carries the profile the search plan promised, the AI context and an llms.txt.
+  writeBundle("<section>changed</section>", siteManifest({ businessProfile: { businessType: "Restaurant" }, aiDescription: "Warung.", llmsTxt: undefined }));
+  assert.throws(() => writeCheckpoint(slug, "build"), /businessProfile\.address is missing[\s\S]*aiDescription is too short[\s\S]*llmsTxt is missing/);
+  writeBundle("<section>changed</section>", siteManifest({ llmsTxt: "Warung Senja, warung makan." }));
+  assert.throws(() => writeCheckpoint(slug, "build"), /llmsTxt must start with "# "/);
   writeBundle("<section>changed</section>");
   writeCheckpoint(slug, "build");
   // The lock file and local previews do not count as a change to the bundle.
@@ -830,6 +843,14 @@ test("a draft may say noindex; the public site may not, and its robots.txt must 
   assert.match(all, /says noindex, so search engines drop it/);
   assert.match(all, /robots\.txt on https:\/\/senja\.wpage\.id blocks every crawler/);
   assert.match(all, /links to \/menu, which answer with an error/);
+});
+
+test("the public site serves the bundle's own llms.txt, not the platform's fallback", () => {
+  const site = (firstLine) => ({ origin: "https://senja.wpage.id", robots: { blocksAll: false }, sitemap: { status: 200, paths: ["/"] }, linkStatus: {}, llms: { status: 200, firstLine } });
+  const ours = judgeAudit({ published: true, pages: [auditPage()], site: site("# Warung Senja") }, { llmsFirstLine: "# Warung Senja" });
+  assert.doesNotMatch(ours.problems.join(), /llms\.txt/);
+  const fallback = judgeAudit({ published: true, pages: [auditPage()], site: site("# Demo Warung Senja") }, { llmsFirstLine: "# Warung Senja" });
+  assert.match(fallback.problems.join(), /llms\.txt on https:\/\/senja\.wpage\.id starts "# Demo Warung Senja", not the bundle's "# Warung Senja"/);
 });
 
 test("verify needs an audit of the current draft with no problems", () => {

@@ -23,8 +23,11 @@ came from.
    always for a business outside Indonesia, whose trade rules you then ask
    the user for (`skills/playbooks/README.md`, "Where they apply"). Then the interview table
    the playbook names, plus the facts its "What decides it" section needs
-   and the photos its "Photographs" section asks for. Cover every row: a row
-   the user declines goes into `declined`, a row you never asked is a gap.
+   and the photos its "Photographs" section asks for. Then the business
+   profile in one group (`skills/meta/seo.md`, section 5): registered name,
+   phone, email, full address with postal code, hours per day, social and
+   marketplace pages, the logo file, a Maps pin. Cover every row: a row the
+   user declines goes into `declined`, a row you never asked is a gap.
 3. **When the user is not the owner**, expect "I will ask my client". Put
    that in `open_questions`, keep going with the rest, and come back to it.
    The stage is not finished while `open_questions` has entries.

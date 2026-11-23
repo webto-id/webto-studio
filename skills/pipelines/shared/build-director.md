@@ -44,6 +44,9 @@ site/assets/<file>
    the ones in `seo_plan.json`, character for character, and the hero
    `headline` is its `h1`; if the copy has to change, change the plan too.
    `businessProfile` holds the fields `seo_plan.json` lists, from the brief.
+   `site.json` also carries `aiDescription` and `llmsTxt`, written from the
+   brief (`skills/meta/seo.md`, section 5b); the checkpoint refuses a site
+   without them.
    In every variant: one `<h1>` (the hero), `<h2>` for section headings,
    `alt` from a content field on every image (`alt=""` only for decoration),
    `img(url, width)` sized for the slot, no `loading="lazy"` on the hero

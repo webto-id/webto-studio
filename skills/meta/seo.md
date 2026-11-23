@@ -140,6 +140,16 @@ fact is not in the brief.
 for them in the brief if they are missing. `socialLinks` tells search which
 Instagram and marketplace pages are the same business.
 
+Ask for every field in the brief, in one group, and record a refusal in
+`declined`: the registered name (`legalName`, a CV or PT, else the trading
+name), a phone and an email the business answers, the full address with
+the postal code and the area people use, the hours per day, the Instagram,
+Facebook, TikTok, Tokopedia or Shopee pages, the logo as a file, and a
+Google Maps pin when they have one (`geo`). A profile with only a phone and
+a city tells search little; most owners have all of this and nobody asked.
+The build checkpoint refuses a bundle that leaves out a field the search
+plan filled.
+
 The picture a shared link shows (WhatsApp, Facebook) is the page's
 `ogImage` when it has one, else the first photo on the page, else `logoUrl`,
 else the site's thumbnail. Set `pages[].ogImage` in `site.json` for the pages
@@ -154,6 +164,46 @@ A `rating` on a testimonial becomes a star rating in search. Only a rating
 the customer actually gave, with their permission; never one you choose.
 A `faq` section becomes a question list in search: only questions customers
 really ask, answered with facts from the brief.
+
+## 5b. `aiDescription` and `llmsTxt`
+
+Two more things a site tells machines, both written by you at the build
+stage into `site.json`, both from `brief.json` only:
+
+- **`aiDescription`** (up to 2000 characters): the business in plain prose,
+  for the platform's own AI (the blog writer and the AI customer service
+  answer from it). What it is and where, who it serves, what it offers and
+  at what prices, how to order or book, the hours, and how it talks to its
+  customers. The checkpoint refuses less than a short paragraph.
+- **`llmsTxt`**: the site's `/llms.txt`, which AI assistants read to answer
+  questions about the business. Markdown, in the site's language:
+
+  ```markdown
+  # Soto Ayam Pak Wiryo
+
+  > Warung soto ayam kampung kuah bening di Jl. Pemuda, Semarang, sejak 1987. Buka 06.00-11.00, Jumat libur.
+
+  ## Halaman
+
+  - [Beranda](https://<address>/): menu dan harga, jam buka, cara pesan
+  - [Pesan untuk kantor](https://<address>/pesan-kantor): minimal 5 porsi, diantar di sekitar Jl. Pemuda
+
+  ## Fakta
+
+  - Menu: soto ayam kampung Rp15.000, sate telur puyuh Rp3.000, es teh Rp4.000
+  - Pesan: WhatsApp 0812-…
+  - Belum bersertifikat halal
+  ```
+
+  The name, a one-line summary, every page with what it answers, then the
+  facts a customer asks first (prices, hours, area, how to order, what the
+  business does not do). Only facts from the brief; no slogans. Use the
+  site's real address once it is known (the subdomain from the plan, or the
+  custom domain).
+
+Without `llmsTxt` the platform serves a fallback built from the page titles,
+and its editor in the dashboard stays empty. A template takes neither: its
+buyer is another business.
 
 ## 6. A migration keeps what ranked
 

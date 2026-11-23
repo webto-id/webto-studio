@@ -15,7 +15,9 @@ export function checkBundle(slug, { strict } = {}) {
   // A template is merchandise and is compiled strict by the marketplace.
   const useStrict = strict ?? pipeline.bundle === "template";
   const pkg = loadConfig().agent.validatorPackage;
-  const command = `npx --yes ${pkg} site "${bundleDir}"${useStrict ? " --strict" : ""}`;
+  // @latest: a bare name runs whatever copy npx cached first, so a rule the
+  // platform already enforces (or a field it already accepts) is missed.
+  const command = `npx --yes ${pkg}@latest site "${bundleDir}"${useStrict ? " --strict" : ""}`;
   const run = spawnSync(command, { shell: true, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
   if (run.error) throw new StudioError(`Could not run the validator: ${run.error.message}`);
   const output = `${run.stdout ?? ""}${run.stderr ?? ""}`.trim();
