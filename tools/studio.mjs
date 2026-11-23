@@ -204,6 +204,7 @@ ${r.warnings.map((w) => `  - ${w}`).join("\n")}`);
     });
     out(`${index.shots.length} screenshot(s) in projects/${slug}/shots/. Open them: a clean report does not mean the page looks right.`);
     out(index.problems.length ? `Problems found:\n${index.problems.map((p) => `  - ${p}`).join("\n")}` : "No overflow, broken image or console error was measured.");
+    if (index.notes?.length) out(`To look at (a strip with a few items is usually a grid on a desktop):\n${index.notes.map((p) => `  - ${p}`).join("\n")}`);
   },
 
   async crawl({ _: [slug, url], flags }) {

@@ -9,6 +9,40 @@ import { loadProject } from "./pipelines.mjs";
 const DEFAULT_WIDTHS = [390, 768, 1280];
 const VIEW_HEIGHT = 900;
 const MAX_PARTS = 12;
+/** From this width the capture is a desktop browser, whose scrollbars take room and show. */
+const DESKTOP_MIN = 1024;
+/** The platform's anti-bot check on forms. See where it is blocked below. */
+const ANTI_BOT = /^https:\/\/challenges\.cloudflare\.com\//;
+
+/**
+ * Parts of the page that scroll sideways inside themselves: a strip of cards, a table,
+ * a code block. The page does not overflow, so overflowPx stays 0, and a headless
+ * capture draws no scrollbar, so the screenshot shows only a card cut at the edge,
+ * which reads as a deliberate "more this way". On a desktop it is usually a strip
+ * that should have been a grid; the critic is told, and decides.
+ */
+function measureScrollStrips() {
+  const out = [];
+  for (const el of document.querySelectorAll("body *")) {
+    const cs = getComputedStyle(el);
+    if (!/(auto|scroll)/.test(cs.overflowX) || el.scrollWidth - el.clientWidth < 2 || el.clientWidth < 120) continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const kids = [...el.children].map((k) => k.getBoundingClientRect());
+    const box = el.getBoundingClientRect();
+    const hidden = kids.filter((k) => k.right > box.right + 2 || k.left < box.left - 2).length;
+    const section = el.closest("section");
+    out.push({
+      in: (section?.querySelector("h1,h2,h3")?.textContent ?? el.tagName.toLowerCase()).trim().slice(0, 80),
+      y: Math.round(r.top + scrollY),
+      hiddenPx: el.scrollWidth - el.clientWidth,
+      items: el.children.length,
+      itemsOutOfView: hidden,
+    });
+    if (out.length >= 8) break;
+  }
+  return out;
+}
 
 /**
  * Whose console message this is. A report-only security notice blocks nothing, and a
@@ -77,12 +111,21 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
   } catch {
     throw new StudioError("Playwright is not installed. Run: npm install && npm run setup:browser. Until then, report visual checks as not done.");
   }
-  let browser;
-  try {
-    browser = await chromium.launch();
-  } catch (e) {
-    throw new StudioError(`Could not start the browser (${e.message.split("\n")[0]}). Run: npm run setup:browser`);
-  }
+  // Headless Chromium hides every scrollbar. A phone's scrollbars float over the page
+  // and fade, so that is true to a phone; a desktop browser draws them and they take
+  // room. The desktop widths get a browser that draws them, so a stray scrollbar in a
+  // section shows in the picture the critic judges, as it shows to a visitor.
+  const browsers = {};
+  const browserFor = async (width) => {
+    const key = width >= DESKTOP_MIN ? "desktop" : "touch";
+    try {
+      browsers[key] ??= await chromium.launch(key === "desktop" ? { ignoreDefaultArgs: ["--hide-scrollbars"] } : {});
+    } catch (e) {
+      throw new StudioError(`Could not start the browser (${e.message.split("\n")[0]}). Run: npm run setup:browser`);
+    }
+    return browsers[key];
+  };
+  await browserFor(sizes[0]);
   const outDir = join(dir, "shots");
   mkdirSync(outDir, { recursive: true });
   const suffix = [dark ? "dark" : null, reducedMotion ? "still" : null, tag].filter(Boolean).join("-");
@@ -90,11 +133,16 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
   try {
     for (const target of targets) {
       for (const width of sizes) {
-        const context = await browser.newContext({
+        const context = await (await browserFor(width)).newContext({
           viewport: { width, height: VIEW_HEIGHT },
           colorScheme: dark ? "dark" : "light",
           reducedMotion: reducedMotion ? "reduce" : "no-preference",
         });
+        // The anti-bot check on forms knows an automated browser for what it is and
+        // opens its "Verify you are human" box, which it hides from almost every
+        // visitor (the platform keeps its slot at height 0 until the check asks).
+        // Kept from loading, the slot stays shut, as a visitor sees the form.
+        await context.route(ANTI_BOT, (r) => r.abort()).catch(() => {});
         const page = await context.newPage();
         const consoleErrors = [];
         const otherConsole = [];
@@ -132,6 +180,8 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
             title: document.title,
           };
         }).catch(() => ({ overflowPx: null, brokenImages: [], title: "" }));
+        const strips = await page.evaluate(measureScrollStrips).catch(() => []);
+        if (strips.length) measured.scrollStrips = strips;
         const base = `${target.label}-${width}${suffix ? `-${suffix}` : ""}`;
         const file = `${base}.png`;
         const fold = `${base}-fold.png`;
@@ -195,7 +245,7 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
       }
     }
   } finally {
-    await browser.close();
+    for (const b of Object.values(browsers)) await b.close().catch(() => {});
   }
   // A later run (dark, reduced motion) adds to the index instead of replacing it.
   const indexPath = join(outDir, "index.json");
@@ -208,7 +258,14 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
     ...s.brokenImages.map((src) => `${s.label} @${s.width}: image failed to load: ${src}`),
     ...s.consoleErrors.map((e) => `${s.label} @${s.width}: console error: ${e}`),
   ]);
-  const index = { at: now(), shots, problems: [...new Set(problems)] };
+  // A strip that scrolls inside itself is a design choice on a phone and often a fault
+  // on a desktop. Neither is certain, so it is a note for the critic, not a problem.
+  const notes = shots.flatMap((s) =>
+    s.width >= DESKTOP_MIN
+      ? (s.scrollStrips ?? []).map((t) => `${s.label} @${s.width}: "${t.in}" scrolls sideways inside itself (${t.itemsOutOfView} of ${t.items} items out of view, ${t.hiddenPx}px hidden)`)
+      : [],
+  );
+  const index = { at: now(), shots, problems: [...new Set(problems)], ...(notes.length ? { notes: [...new Set(notes)] } : {}) };
   writeJson(indexPath, index);
   return index;
 }

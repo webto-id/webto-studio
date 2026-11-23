@@ -114,7 +114,7 @@ export function criticBrief(dir, pipeline) {
 1. Read the rubric: ${RUBRIC}
 2. Open every screenshot below. All of them.
 ${lines.join("\n")}
-3. The measurements for each screenshot (sideways overflow in px, images that failed to load, console errors, the page title) are in:
+3. The measurements for each screenshot (sideways overflow in px, images that failed to load, console errors, the page title, and "scrollStrips": parts that scroll sideways inside themselves, with how many items are out of view) are in:
   ${join(dir, "shots", "index.json")}
 ${motionStep}
 Open nothing else. Do not visit the site, search the web, or read any other file in that folder or the folders around it: no brief, plan, design notes, code, decision log or earlier critique. What these files cannot show, list in "not_judged".
