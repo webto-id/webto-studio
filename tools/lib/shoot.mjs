@@ -82,7 +82,22 @@ export async function openPage(page, url) {
     return e.message.split("\n")[0];
   }
   await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
+  // The platform sets scroll-behavior: smooth, so every scrollTo the tools make glides.
+  // Back from the bottom of a long page the glide takes about two seconds, and the first
+  // screen was captured at 1.2 s, still 160 px down: critics read it as a page that
+  // opens scrolled. Jumps are instant here; a visitor's page is not changed.
+  await page.addStyleTag({ content: "html, body { scroll-behavior: auto !important; }" }).catch(() => {});
   return null;
+}
+
+/** Scroll to the top and wait until the page is there. */
+export async function toTop(page) {
+  await page
+    .evaluate(async () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      for (let i = 0; i < 30 && scrollY > 0; i++) await new Promise((r) => setTimeout(r, 100));
+    })
+    .catch(() => {});
 }
 
 export function parsePages(pages, urls) {
@@ -169,8 +184,8 @@ export async function shoot(slug, { pages = [], urls = [], widths, dark = false,
             el.scrollIntoView({ block: "center" });
             await wait(500);
           }
-          window.scrollTo(0, 0);
         }).catch(() => {});
+        await toTop(page);
         await page.waitForTimeout(1200);
         const measured = await page.evaluate(() => {
           const doc = document.documentElement;

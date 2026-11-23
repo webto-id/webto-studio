@@ -81,6 +81,13 @@ change. If they accept:
 node tools/studio.mjs checkpoint <project> verify --below-bar "<what the user said>"
 ```
 
+If instead they ask for changes and a new judgement, open a new round of
+passes with their words, then fix, capture again, and run fresh critics:
+
+```bash
+node tools/studio.mjs critic <project> --more-passes "<what the user said>"
+```
+
 When you report the finished site, give the last overall, say whether it
 came from an independent critic or a self-score, and name the one or two
 things that would raise it most.

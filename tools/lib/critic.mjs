@@ -5,7 +5,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Ajv from "ajv";
-import { ROOT, StudioError, readJson } from "./core.mjs";
+import { ROOT, StudioError, now, readJson, writeJson } from "./core.mjs";
 
 export const WEIGHTS = { design: 0.4, usability: 0.3, distinctiveness: 0.2, content: 0.1 };
 export const RUBRIC = join(ROOT, "skills", "meta", "critic-rubric.md");
@@ -29,6 +29,33 @@ export function listPasses(dir) {
     .filter(Boolean)
     .map((m) => ({ n: Number(m[1]), file: `critique/${m[0]}` }))
     .sort((a, b) => a.n - b.n);
+}
+
+/**
+ * Rounds the user opened after the passes ran out ("fix these, then judge it again").
+ * Each round allows max_passes more. Only the user opens one, and only once the passes
+ * are spent, so a score is never re-rolled by the builder.
+ */
+function readRounds(dir) {
+  const p = join(dir, "critique", "rounds.json");
+  return existsSync(p) ? (readJson(p).rounds ?? []) : [];
+}
+
+export function passLimit(dir, bar) {
+  return bar.max_passes * (1 + readRounds(dir).length);
+}
+
+/** Open a new round of passes with the user's own words. Refused while passes remain. */
+export function openRound(dir, pipeline, said) {
+  const quote = typeof said === "string" ? said.trim() : "";
+  if (quote.length < 2) throw new StudioError('--more-passes takes what the user said, e.g. --more-passes "ok, perbaiki lalu nilai ulang"');
+  const bar = qualityBar(pipeline);
+  const done = listPasses(dir).at(-1)?.n ?? 0;
+  const limit = passLimit(dir, bar);
+  if (done < limit) throw new StudioError(`${limit - done} critic pass(es) are still open in this round. More are opened only after the last one, by the user`);
+  const rounds = [...readRounds(dir), { at: now(), after_pass: done, said: quote }];
+  writeJson(join(dir, "critique", "rounds.json"), { rounds });
+  return { from: done + 1, to: passLimit(dir, bar) };
 }
 
 function readIndex(dir) {
@@ -76,9 +103,10 @@ export function criticBrief(dir, pipeline) {
       throw new StudioError(`Pass ${last.n} already judged these screenshots. A new pass needs new screenshots (or a new motion run), taken after the fixes`);
     }
   }
-  if (n > bar.max_passes) {
+  const limit = passLimit(dir, bar);
+  if (n > limit) {
     throw new StudioError(
-      `${bar.max_passes} critic passes are done. Show the user the last scores and the fixes still open ("studio critic <project> --result"), and ask whether to accept the site as it is (checkpoint verify --below-bar "<what they said>") or what to change`,
+      `${limit} critic passes are done. Show the user the last scores and the fixes still open ("studio critic <project> --result"), and ask whether to accept the site as it is (checkpoint verify --below-bar "<what they said>") or what to change. If they ask for changes and a new judgement, open a round with their words: critic <project> --more-passes "<what they said>"`,
     );
   }
   const out = join(dir, "critique", `pass-${n}.json`);
@@ -108,7 +136,14 @@ export function criticBrief(dir, pipeline) {
         `  ${motionPath}`,
       ].join("\n") + "\n"
     : "";
-  const stamp = `"pass": ${n}, "critic": "subagent", "shots_at": "${index.at}"${motionIndex ? `, "motion_at": "${motionIndex.at}"` : ""}`;
+  // A template draft holds the pages, not the site's database: its blog and product lists
+  // are empty unless the bundle ships samples. Critics scored the empty blog as the site's
+  // worst fault three passes running, for a list that fills the moment it is applied.
+  const templateDraft = pipeline?.name === "template-for-sale" || existsSync(join(dir, "template", "webto.lock.json"));
+  const draftNote = templateDraft
+    ? "These pages are a template draft: blog posts and products live in the database of the site the template is applied to, not in the template. An empty or near-empty blog or product list here is not a fault of the design; do not score it, and name it in \"not_judged\". Judge how the list looks when it has items only if a screenshot shows items.\n"
+    : "";
+  const stamp = `"pass": ${n},"critic": "subagent", "shots_at": "${index.at}"${motionIndex ? `, "motion_at": "${motionIndex.at}"` : ""}`;
   const text = `You are judging a website you have never seen. You get only evidence: screenshots and measurements.
 
 1. Read the rubric: ${RUBRIC}
@@ -116,7 +151,7 @@ export function criticBrief(dir, pipeline) {
 ${lines.join("\n")}
 3. The measurements for each screenshot (sideways overflow in px, images that failed to load, console errors, the page title, and "scrollStrips": parts that scroll sideways inside themselves, with how many items are out of view) are in:
   ${join(dir, "shots", "index.json")}
-${motionStep}
+${motionStep}${draftNote}
 Open nothing else. Do not visit the site, search the web, or read any other file in that folder or the folders around it: no brief, plan, design notes, code, decision log or earlier critique. What these files cannot show, list in "not_judged".
 
 Write your verdict as JSON, in the shape the rubric's "The file" section gives, to:
@@ -124,7 +159,7 @@ Write your verdict as JSON, in the shape the rubric's "The file" section gives, 
 with ${stamp}. Write evidence paths relative to the project folder, for example "${shots[0].fold ?? shots[0].file}".
 
 Then reply with one line: the file is written, and your one-sentence reading of the site's idea.`;
-  return { n, max: bar.max_passes, out, text };
+  return { n, max: limit, out, text };
 }
 
 let validate;
@@ -179,7 +214,7 @@ export function judgeCritique(dir, pipeline, { belowBar } = {}) {
     if (quote.length >= 2) warnings.push(`Accepted under the bar by the user: ${why}`);
     else {
       problems.push(
-        last.n >= bar.max_passes
+        last.n >= passLimit(dir, bar)
           ? `Critique pass ${last.n}: ${why}. That was the last pass. Show the user the scores and the open fixes, and checkpoint with --below-bar "<what they said>" if they accept it`
           : `Critique pass ${last.n}: ${why}. Work through the fixes, capture again, and run a new pass with a new critic`,
       );

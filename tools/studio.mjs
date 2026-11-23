@@ -25,6 +25,8 @@ const HELP = `webto-studio
   checkpoint <project> <stage> [--approved "<what the user said>"] [--below-bar "<what the user said>"] [--note "..."]
   critic <project>                        the brief for a fresh critic agent: only the screenshots, never the plan
   critic <project> --result               the latest critique: weighted score, the bar, the fixes
+  critic <project> --more-passes "<what the user said>"
+                                          after the last pass: the user asked for fixes and a new judgement
   audit <project> --page <label>=<url> [--page ...] [--published]
                                           what search engines read: titles, descriptions, headings, alt, links, structured data
   log <project> "<decision>"              add a line to the decision log
@@ -127,7 +129,12 @@ const commands = {
   async critic({ _: [slug], flags }) {
     const { dir, meta } = loadProject(slug);
     const pipeline = loadPipeline(meta.pipeline);
-    const { criticBrief, judgeCritique } = await import("./lib/critic.mjs");
+    const { criticBrief, judgeCritique, openRound } = await import("./lib/critic.mjs");
+    if (flags["more-passes"] !== undefined) {
+      const r = openRound(dir, pipeline, flags["more-passes"]);
+      out(`Round opened with the user's words: passes ${r.from} to ${r.to}. Fix, capture again (shoot, motion), then run: node tools/studio.mjs critic ${slug}`);
+      return;
+    }
     if (flags.result === true) {
       const r = judgeCritique(dir, pipeline);
       if (!r.data?.scores) {

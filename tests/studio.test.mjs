@@ -1,6 +1,6 @@
 // The rules that keep an agent on the pipeline: order, artifacts, review, approval.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, test } from "node:test";
@@ -612,7 +612,7 @@ test("neighbouring sections get different layouts; the navbar and footer do not 
 });
 
 // ── the blind critic ──────────────────────────────────────────────────────
-const { criticBrief, judgeCritique, overallOf } = await import("../tools/lib/critic.mjs");
+const { criticBrief, judgeCritique, overallOf, openRound } = await import("../tools/lib/critic.mjs");
 
 function toVerify() {
   throughPlan();
@@ -664,6 +664,27 @@ test("the critic's brief lists the visitor's screenshots only, and needs some", 
   assert.ok(b.text.includes(`"shots_at": "${at}"`));
   assert.match(b.text, /critic-rubric\.md/);
   assert.match(b.out, /critique[\\/]pass-1\.json$/);
+});
+
+test("more passes open only after the last one, and only with the user's words", () => {
+  toVerify();
+  const pipeline = loadPipeline("client-site");
+  for (let n = 1; n <= 2; n++) critique(n, shots(`2026-11-19T10:0${n}:00.000Z`), [6, 6, 6, 6]);
+  assert.throws(() => openRound(dir, pipeline, "ok"), /still open/);
+  critique(3, shots("2026-11-19T10:03:00.000Z"), [6, 6, 6, 6]);
+  shots("2026-11-19T10:04:00.000Z");
+  assert.throws(() => criticBrief(dir, pipeline), /--more-passes/);
+  assert.throws(() => openRound(dir, pipeline, " "), /what the user said/);
+  assert.deepEqual(openRound(dir, pipeline, "ok, perbaiki lalu nilai ulang"), { from: 4, to: 6 });
+  const b = criticBrief(dir, pipeline);
+  assert.equal(b.n, 4);
+  assert.equal(b.max, 6);
+  assert.doesNotMatch(b.text, /template draft/);
+  mkdirSync(join(dir, "template"), { recursive: true });
+  writeFileSync(join(dir, "template", "webto.lock.json"), "{}");
+  assert.match(criticBrief(dir, pipeline).text, /template draft: blog posts and products/);
+  rmSync(join(dir, "template"), { recursive: true });
+  assert.throws(() => openRound(dir, pipeline, "lagi"), /still open/);
 });
 
 test("a long page reaches the critic in parts, not as one shrunk image", () => {
