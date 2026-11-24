@@ -27,6 +27,9 @@ const HELP = `webto-studio
   critic <project> --result               the latest critique: weighted score, the bar, the fixes
   critic <project> --more-passes "<what the user said>"
                                           after the last pass: the user asked for fixes and a new judgement
+  critic <project> --mode                 which critic this project runs (off, self, once, full) and why
+  critic <project> --mode <m> --approved "<what the user said>"
+                                          change it for this project; the default is STUDIO_CRITIC in .env
   audit <project> --page <label>=<url> [--page ...] [--published]
                                           what search engines read: titles, descriptions, headings, alt, links, structured data
   log <project> "<decision>"              add a line to the decision log
@@ -44,6 +47,17 @@ const HELP = `webto-studio
 `;
 
 const out = (v) => console.log(typeof v === "string" ? v : JSON.stringify(v, null, 2));
+
+const CRITIC_MODE_TEXT = {
+  off: "no critic; verify rests on your own review of the screenshots and the measurements",
+  self: "you score your own screenshots once, marked as not independent",
+  once: "one independent pass; its fixes are made but not judged again",
+  full: "independent passes until the bar is met or the passes run out",
+};
+function describeCriticMode(cm) {
+  const from = { project: "chosen for this project", STUDIO_CRITIC: "STUDIO_CRITIC in .env", default: "the default", pipeline: "the pipeline's floor" }[cm.source];
+  return `Critic: ${cm.mode} (${from}): ${CRITIC_MODE_TEXT[cm.mode]}.${cm.note ? ` ${cm.note}.` : ""}${cm.floor !== "off" && !cm.note ? ` This pipeline allows ${cm.floor} at the least.` : ""}`;
+}
 
 const commands = {
   async setup() {
@@ -95,6 +109,8 @@ const commands = {
     const pipeline = loadPipeline(meta.pipeline);
     const states = stageStates(dir, pipeline);
     out(`${meta.title}  (pipeline ${pipeline.name})`);
+    const { criticMode } = await import("./lib/critic.mjs");
+    out(describeCriticMode(criticMode(dir, pipeline)));
     for (const s of states) {
       const mark = s.state === "done" ? "done " : s.state === "stale" ? "STALE" : "     ";
       out(`  [${mark}] ${s.stage.name}${s.stage.human_approval ? "  (needs approval)" : ""}`);
@@ -129,7 +145,12 @@ const commands = {
   async critic({ _: [slug], flags }) {
     const { dir, meta } = loadProject(slug);
     const pipeline = loadPipeline(meta.pipeline);
-    const { criticBrief, judgeCritique, openRound } = await import("./lib/critic.mjs");
+    const { criticBrief, judgeCritique, openRound, criticMode, setCriticMode } = await import("./lib/critic.mjs");
+    if (flags.mode !== undefined) {
+      const cm = flags.mode === true ? criticMode(dir, pipeline) : setCriticMode(dir, pipeline, String(flags.mode).trim().toLowerCase(), flags.approved);
+      out(describeCriticMode(cm));
+      return;
+    }
     if (flags["more-passes"] !== undefined) {
       const r = openRound(dir, pipeline, flags["more-passes"]);
       out(`Round opened with the user's words: passes ${r.from} to ${r.to}. Fix, capture again (shoot, motion), then run: node tools/studio.mjs critic ${slug}`);
@@ -137,6 +158,10 @@ const commands = {
     }
     if (flags.result === true) {
       const r = judgeCritique(dir, pipeline);
+      if (r.mode === "off") {
+        out(r.warnings.join("\n"));
+        return;
+      }
       if (!r.data?.scores) {
         out(r.problems.join("\n"));
         process.exitCode = 1;
@@ -152,11 +177,16 @@ const commands = {
       d.fixes.forEach((f, i) => out(`  ${i + 1}. [${f.criterion}] ${f.file}: ${f.what} -> ${f.change}`));
       if (d.not_judged?.length) out(`Not judged: ${d.not_judged.join("; ")}`);
       for (const p of r.problems) out(`PROBLEM: ${p}`);
+      for (const w of r.warnings) out(`Note: ${w}`);
       out("Compare the two readings with brief.json and the concept. Where they differ, the site is not saying it: fix the site.");
       return;
     }
     const b = criticBrief(dir, pipeline);
-    out(`Critic pass ${b.n} of at most ${b.max}. Give the text between the lines to a fresh agent, and nothing else: not the brief, the plan, the design direction, the code, earlier scores or your opinion.`);
+    out(
+      b.mode === "self"
+        ? `Self-score pass ${b.n} of at most ${b.max} (critic mode "self"). Follow the text between the lines yourself: open the screenshots before rereading anything of yours.`
+        : `Critic pass ${b.n} of at most ${b.max}${b.mode === "once" ? ' (critic mode "once": its fixes are made but not judged again)' : ""}. Give the text between the lines to a fresh agent, and nothing else: not the brief, the plan, the design direction, the code, earlier scores or your opinion.`,
+    );
     out(`-----\n${b.text}\n-----`);
     out(`When it is done: node tools/studio.mjs critic ${slug} --result`);
   },

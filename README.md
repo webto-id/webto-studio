@@ -119,6 +119,9 @@ Four things go into every site, however short the request:
   slowed to a mid-range Android's, and anything that stutters, stays
   invisible or draws an empty canvas blocks publishing. Its fix list is the
   builder's work until the site reaches the bar, or you accept it as it is.
+  To save tokens, the critic can run one pass, be the builder's own score,
+  or be off (`STUDIO_CRITIC` in `.env`); a template for sale always gets at
+  least one pass.
 - **Written to be found.** With the pages, the agent plans the search each
   one answers ("klinik gigi anak dago bandung"), its title, description and
   headline, and the business facts that become structured data, from what

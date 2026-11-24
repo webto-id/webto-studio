@@ -116,7 +116,9 @@ redone three times. After that, stop and ask the user how to proceed.
    validator does not mean the page looks right. Capture the real pages with
    `studio shoot` and open the images. Then a fresh critic agent that sees
    only the screenshots scores them (`skills/meta/critic.md`); its fixes are
-   your work until the site meets the bar. `studio audit` reads what search
+   your work until the site meets the bar. An agency can run a cheaper
+   critic, or none, to save tokens (`STUDIO_CRITIC`, "The critic mode" in
+   that file); never lower it yourself. `studio audit` reads what search
    engines read from the same pages, and `studio motion` scrolls them on a
    slowed phone when anything moves (`skills/meta/motion.md`). Without a browser, say so, and
    list the check as not done.
@@ -170,7 +172,7 @@ All through `node tools/studio.mjs <command>`:
 | `checkpoint <project> <stage>` | Records a finished stage, or refuses with the reasons |
 | `log <project> "<text>"` | Appends a decision |
 | `audit <project> --page <label>=<url>` | Reads the real pages at phone width as a search engine does: title, description, `<h1>`, heading order, alt, link text, links to missing pages, structured data, words, weight; checks them against `seo_plan.json` and writes `reports/audit.json`. `--published` also checks noindex, `robots.txt`, the sitemap and every internal link on the live site |
-| `critic <project>` | Prints the brief for a fresh critic agent: the rubric and the screenshots, nothing of the plan. `--result` shows the latest pass against the bar |
+| `critic <project>` | Prints the brief for a fresh critic agent: the rubric and the screenshots, nothing of the plan. `--result` shows the latest pass against the bar. `--mode` shows the critic mode (`off`, `self`, `once`, `full`); `--mode <m> --approved "<what the user said>"` changes it for the project |
 | `shoot <project> --page <label>=<url>` | Screenshots at 390, 768 and 1280 px, whole page and first screen, and measures sideways overflow, failed images and console errors. `--dark` and `--reduced-motion` set the visitor's device preference; `--tag` names the run. Accepts `file:///` paths for local previews |
 | `motion <project> --page <label>=<url>` | Scrolls each page on a phone slowed to a mid-range Android's and on a laptop: slow frames, blocked time, layout shift, pins, canvases that draw nothing, entrance effects that never run, heavy models and video; keeps frames of each moving spot for the critic. Required at verify when the site moves |
 | `crawl <project> <url> --authorized` | Reads an existing site into `content_inventory.json`. `--render` for sites built in the browser |

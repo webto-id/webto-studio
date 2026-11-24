@@ -80,6 +80,10 @@ the real navigation, the real images.
    (and the motion, when it was measured),
    and run a new pass with a new critic, until the latest pass meets the
    pipeline's `quality_bar` or the passes run out and the user decides.
+   The critic mode (`studio status` shows it; `skills/meta/critic.md`, "The
+   critic mode") can make this one pass (`once`), your own score (`self`),
+   or none (`off`). In `off`, steps 5 and 6 are the whole visual check: do
+   them in full.
 9. **Write `review/verify.json`**, including the critic's readings where
    they did not match the brief or the concept.
 
@@ -98,4 +102,6 @@ node tools/studio.mjs checkpoint <project> verify
 
 Add `--below-bar "<what the user said>"` only when the user accepted a site
 under the bar. When you report, give the critic's last overall and say
-whether it was independent.
+whether it was independent. In a mode other than `full`, name the mode, and
+say what it left unjudged: the fixes after the pass (`once`, `self`), or the
+whole site (`off`).

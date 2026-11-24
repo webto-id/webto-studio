@@ -122,7 +122,10 @@ Empat hal masuk ke setiap situs, sependek apa pun permintaannya:
   di ponsel yang diperlambat seperti Android kelas menengah; animasi yang
   tersendat, konten yang tak pernah muncul, atau canvas kosong menahan situs
   dari terbit. Daftar perbaikannya menjadi pekerjaan agen pembuat sampai
-  situs mencapai ambang, atau Anda menerimanya apa adanya.
+  situs mencapai ambang, atau Anda menerimanya apa adanya. Untuk menghemat
+  token, kritikus bisa dibuat satu putaran saja, dinilai agen sendiri, atau
+  dimatikan (`STUDIO_CRITIC` di `.env`); template untuk dijual selalu
+  mendapat minimal satu putaran.
 - **Ditulis untuk ditemukan.** Bersama halaman, agen merencanakan pencarian
   yang dijawab tiap halaman ("klinik gigi anak dago bandung"), judul,
   deskripsi, dan judul utamanya, serta fakta usaha yang menjadi data

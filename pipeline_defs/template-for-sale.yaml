@@ -21,6 +21,9 @@ quality_bar:
   overall: 7
   min: 6
   max_passes: 3
+  # The least critic an agency can choose here (STUDIO_CRITIC, critic --mode): a template
+  # is sold to many buyers under the platform's name, so one independent pass stays.
+  critic_min: once
 
 stages:
   - name: preflight

@@ -612,7 +612,10 @@ test("neighbouring sections get different layouts; the navbar and footer do not 
 });
 
 // ── the blind critic ──────────────────────────────────────────────────────
-const { criticBrief, judgeCritique, overallOf, openRound } = await import("../tools/lib/critic.mjs");
+const criticLib = await import("../tools/lib/critic.mjs");
+const { criticBrief, judgeCritique, overallOf, openRound } = criticLib;
+// The agency default lives in .env; the tests start from the built-in "full".
+delete process.env.STUDIO_CRITIC;
 
 function toVerify() {
   throughPlan();
@@ -716,7 +719,7 @@ test("verify needs a critique of the current screenshots that meets the bar", ()
   assert.throws(() => writeCheckpoint(slug, "verify"), /the screenshots changed after this critique/);
   shots(at2);
   const { checkpoint, warnings } = writeCheckpoint(slug, "verify");
-  assert.deepEqual(checkpoint.critique, { pass: 2, critic: "subagent", overall: 7.5, scores: { design: 8, usability: 7.5, distinctiveness: 7, content: 6.5 }, met: true });
+  assert.deepEqual(checkpoint.critique, { pass: 2, critic: "subagent", mode: "full", overall: 7.5, scores: { design: 8, usability: 7.5, distinctiveness: 7, content: 6.5 }, met: true });
   assert.deepEqual(warnings, []);
   assert.deepEqual(checkpoint.artifacts.find((a) => a.name === "critique"), { name: "critique", path: "critique/pass-2.json" });
 });
@@ -769,6 +772,75 @@ test("after the last pass under the bar only the user can accept the site; a sel
   assert.equal(checkpoint.critique.below_bar, "tidak apa-apa, foto asli menyusul");
   assert.equal(warnings.length, 2);
   assert.match(warnings.join("\n"), /Accepted under the bar by the user[\s\S]*self-score, not an independent one/);
+});
+
+test("critic mode: project choice, then STUDIO_CRITIC, then full; never below the pipeline's floor", () => {
+  const { criticMode, setCriticMode } = criticLib;
+  toVerify();
+  const site = loadPipeline("client-site");
+  const tpl = loadPipeline("template-for-sale");
+  assert.deepEqual(criticMode(dir, site, {}), { mode: "full", source: "default", floor: "off" });
+  assert.deepEqual(criticMode(dir, site, { STUDIO_CRITIC: " Once " }), { mode: "once", source: "STUDIO_CRITIC", floor: "off" });
+  assert.throws(() => criticMode(dir, site, { STUDIO_CRITIC: "never" }), /STUDIO_CRITIC is "never"/);
+  const lifted = criticMode(dir, tpl, { STUDIO_CRITIC: "off" });
+  assert.equal(lifted.mode, "once");
+  assert.match(lifted.note, /STUDIO_CRITIC asks for "off"; pipeline template-for-sale needs at least "once"/);
+  assert.throws(() => setCriticMode(dir, site, "off", " "), /what they said/);
+  assert.throws(() => setCriticMode(dir, tpl, "self", "hemat saja"), /needs at least "once"/);
+  assert.throws(() => setCriticMode(dir, site, "cheap", "hemat"), /--mode is one of/);
+  assert.equal(setCriticMode(dir, site, "self", "pakai penilaian sendiri saja").mode, "self");
+  // The project's choice wins over the agency default.
+  assert.equal(criticMode(dir, site, { STUDIO_CRITIC: "full" }).mode, "self");
+  assert.equal(JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).critic.approval, "pakai penilaian sendiri saja");
+  assert.match(readFileSync(join(dir, "decision_log.jsonl"), "utf8"), /"kind":"critic-mode","mode":"self"/);
+  // A self pass is written by the builder and stamped so.
+  shots();
+  const b = criticBrief(dir, site);
+  assert.equal(b.mode, "self");
+  assert.match(b.text, /^Score your own site as a stranger would/);
+  assert.match(b.text, /"critic": "self"/);
+});
+
+test("critic off: no brief, and verify passes on the builder's own review, said plainly", () => {
+  toVerify();
+  shots();
+  criticLib.setCriticMode(dir, loadPipeline("client-site"), "off", "tanpa kritikus, hemat token");
+  assert.throws(() => criticBrief(dir, loadPipeline("client-site")), /The critic is off for this project \(the user's choice\)/);
+  assert.throws(() => openRound(dir, loadPipeline("client-site"), "nilai lagi"), /The critic is off/);
+  const { checkpoint, warnings } = writeCheckpoint(slug, "verify");
+  assert.deepEqual(checkpoint.critique, { critic: "off", mode: "off" });
+  assert.match(warnings.join("\n"), /No critic judged this site/);
+  assert.equal(checkpoint.artifacts.find((a) => a.name === "critique"), undefined);
+});
+
+test("critic once: one pass; its fixes are captured but not judged, and under the bar the user decides", () => {
+  toVerify();
+  criticLib.setCriticMode(dir, loadPipeline("client-site"), "once", "sekali saja");
+  const at = shots();
+  assert.equal(criticBrief(dir, loadPipeline("client-site")).max, 1);
+  critique(1, at, [6.5, 6.5, 6, 6]);
+  // The fixes are made and captured again; no second pass in this round.
+  shots("2026-11-19T11:00:00.000Z");
+  assert.throws(() => criticBrief(dir, loadPipeline("client-site")), /1 critic pass is done \(critic mode "once" judges once per round\)/);
+  assert.throws(() => writeCheckpoint(slug, "verify"), /Critic mode "once" judges once: make its fixes, capture again, then show the user/);
+  const { checkpoint, warnings } = writeCheckpoint(slug, "verify", { belowBar: "oke, sudah cukup" });
+  assert.equal(checkpoint.critique.mode, "once");
+  assert.equal(checkpoint.critique.fixes_judged, false);
+  assert.equal(checkpoint.critique.below_bar, "oke, sudah cukup");
+  assert.match(warnings.join("\n"), /the fixes since then were not judged \(critic mode "once"\)/);
+  // The user can still ask for one more judgement.
+  assert.deepEqual(openRound(dir, loadPipeline("client-site"), "perbaiki lalu nilai ulang"), { from: 2, to: 2 });
+});
+
+test("critic once, met on the first pass: verify passes after the fixes are captured", () => {
+  toVerify();
+  criticLib.setCriticMode(dir, loadPipeline("client-site"), "once", "sekali saja");
+  critique(1, shots());
+  shots("2026-11-19T11:00:00.000Z");
+  const { checkpoint, warnings } = writeCheckpoint(slug, "verify");
+  assert.equal(checkpoint.critique.met, true);
+  assert.equal(checkpoint.critique.fixes_judged, false);
+  assert.equal(warnings.length, 1);
 });
 
 test("a malformed critique is redone under its own number", () => {

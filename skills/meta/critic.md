@@ -5,6 +5,42 @@ the intent instead of the screen. In the verify stage a fresh agent that has
 never seen this project scores the real pages from the screenshots alone, and
 its fix list is your work until the site reaches the bar.
 
+## The critic mode
+
+A critic costs tokens: in the demo runs, about a tenth of a client site and a
+quarter to a third of a template. An agency can choose to pay less. The mode
+comes from the project, else `STUDIO_CRITIC` in `.env`, else `full`;
+`studio status` and `studio critic <project> --mode` show which one runs.
+
+| Mode | What runs | The verify gate |
+|---|---|---|
+| `full` | A fresh critic per pass, up to the pipeline's `max_passes` | The latest pass meets the bar, or the user accepts it under the bar |
+| `once` | One fresh critic; you make its fixes and capture again, and nobody judges them | Pass 1 met the bar, or the user accepts it under the bar after seeing the scores and what you fixed |
+| `self` | You score your own screenshots once, from the same brief | As `once`, and the score is marked as not independent |
+| `off` | No critic | Your own review of every screenshot and the measurements; the gate records that no critic judged the site |
+
+The pipeline sets a floor (`quality_bar.critic_min`). `template-for-sale`
+needs at least `once`: a template is sold to many buyers under the
+platform's name. A `STUDIO_CRITIC` below the floor runs the floor, and the
+tool says so.
+
+Change the mode for one project only when the user asks (for example "tanpa
+kritikus, hemat token"), after telling them what the cheaper mode leaves
+unchecked:
+
+```bash
+node tools/studio.mjs critic <project> --mode once --approved "<what the user said>"
+```
+
+Never lower the mode yourself to get past the bar. In every mode but `full`,
+report the mode with the result, and in `once` and `self` say that the fixes
+after the pass were not judged.
+
+The rest of this file is how a pass runs. In `self` mode, `studio critic`
+prints the same brief addressed to you: open the screenshots before you
+reread anything of yours, and follow it as written. In `off` there is no
+pass: go on to the review and the checkpoint.
+
 ## When
 
 After `studio shoot` has captured every page of the real draft, in every run
